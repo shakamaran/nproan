@@ -5,7 +5,8 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from nproan.commonclass import Common
+from .commonclass import Common
+import nproan.commonfunctions as cf
 
 class Gain(Common):
     def __init__(self):
@@ -31,10 +32,8 @@ class Gain(Common):
         
         print('Loading filter data\n')
         try:
-            self.event_map = np.load(
-                os.path.join(filter_dir, 'event_map.npy'),
-                allow_pickle=True
-            )
+            self.event_map = cf.get_array_from_file(
+                filter_dir, 'event_map.npy')
             #set the directory where the filter data is stored
             self.filter_dir = filter_dir
             #this is the parent directory. data from this step is stored there
@@ -51,13 +50,13 @@ class Gain(Common):
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created directory for gain step: {self.step_dir}')
         
-        fits = self._get_gain_fit()
+        fits = self.get_gain_fit(self.event_map)
         np.save(os.path.join(self.step_dir, 'fit_mean.npy'), fits[0])
         np.save(os.path.join(self.step_dir, 'fit_sigma.npy'), fits[1])
         np.save(os.path.join(self.step_dir, 'fit_mean_error.npy'), fits[2])
         np.save(os.path.join(self.step_dir, 'fit_sigma_error.npy'), fits[3])
         
-    def _get_gain_fit(self):
+    def get_gain_fit(self, event_map):
         mean = np.full((self.row_size, self.column_size), np.nan)
         sigma = np.full((self.row_size, self.column_size), np.nan)
         mean_error = np.full((self.row_size, self.column_size), np.nan)
@@ -81,9 +80,9 @@ class Gain(Common):
                 return (np.nan,np.nan,np.nan,np.nan)
         
         count_too_few = 0
-        for i in range(self.event_map.shape[0]):
-            for j in range(self.event_map.shape[1]):
-                signals = self.event_map[i,j]
+        for i in range(event_map.shape[0]):
+            for j in range(event_map.shape[1]):
+                signals = event_map[i,j]
                 if len(signals) >= self.min_signals:
                     params = fit_hist(signals)
                     mean[i,j] = params[1]

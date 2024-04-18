@@ -45,6 +45,29 @@ parameters: dict:
     # Threshold for the filter step for filtering out the events
     'signal_fitted_offset' : bool,
 }
+My current philosophy for doing stuff:
+- Parameters from the parameter file are stored in the class variables
+- for every step class, the whole parameter file must be loaded
+- the filter class loads the offnoi data, and checks consistency with the
+    parameter file
+- the gain class loads the filter data, and checks consistency with the
+    parameter file
+- one directory (the "common_dir") should be created in a "results" directory 
+    on \scratch this should only be done once in the offnoi step
+    in there, a directory "offnoi" should be created
+    the parameter file must be placed there after calculation
+- in the filter step a folder path to the "offnoi" directory should be
+    provided along with the parameters
+    consistency of the parameters (from last steps) will be checked
+- in the gain step a folder path to the "filter" directory should be
+    provided along with the parameters
+    consistency of the parameters (from last steps) will be checked
+
+- functions that return values should be named get_something(), this is 
+    preferred
+- data should not be stored in the class
+- data that is loaded in the filter or gain step is stored in a class variable
+    and deleted after use
 '''
 
 class Common:
@@ -67,14 +90,14 @@ class Common:
         #directory for the current step
         self.step_dir = None
 
-    def read_data(self):
+    def get_data(self):
         frames_per_chunk = 20
         raw_row_size = self.column_size + self.key_ints
         raw_frame_size = self.column_size * raw_row_size * self.nreps
         chunk_size =  raw_frame_size* frames_per_chunk
         offset = 8
         count = 0
-        self.data = np.zeros((self.nframes, self.column_size, self.nreps, 
+        output = np.zeros((self.nframes, self.column_size, self.nreps, 
                               self.row_size), dtype=np.float64)
         frames_here = 0
 
@@ -86,7 +109,7 @@ class Common:
                 print(f'Loaded {frames_here} of {self.nframes} \
                       requested frames, end of file reached.')
                 print('Run calc()\n~~~~~')
-                break
+                return output
             print(f'\rReading chunk {count+1} from bin file, \
                   {frames_here} frames loaded', end='')
             #reshape the array into rows -> (#ofRows,67)
@@ -123,68 +146,94 @@ class Common:
                 inp_data = -inp_data.reshape(-1, self.column_size, 
                                              self.nreps, 
                                              self.row_size).astype(float)
-                self.data[frames_here:] = inp_data[:self.nframes-frames_here]
+                output[frames_here:] = inp_data[:self.nframes-frames_here]
                 frames_here += frames_inc
                 print(f'\nLoaded {self.nframes} frames')
                 print('Run calculate()\n~~~~~')
-                break
+                return output
             #here is the polarity from the c++ code
-            self.data[frames_here:frames_here+frames_inc] = \
+            output[frames_here:frames_here+frames_inc] = \
             -inp_data.reshape(-1, self.column_size, 
                               self.nreps, self.row_size).astype(float)
             frames_here += frames_inc
             gc.collect()
 
-    def _calc_avg_over_frames(self):
-        self.avg_over_frames = np.nanmean(self.data, axis = 0)
+    @staticmethod
+    def get_avg_over_frames(data):
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        return np.nanmean(data, axis = 0)
 
-    def _calc_avg_over_nreps(self):
-        self.avg_over_nreps = np.nanmean(self.data, axis = 2)
+    @staticmethod
+    def get_avg_over_nreps(data):
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        return np.nanmean(data, axis = 2)
 
-    def _calc_avg_over_frames_and_nreps(self):
-        self.avg_over_frames_and_nreps = np.nanmean(self.data, axis = (0,2))
+    @staticmethod
+    def get_avg_over_frames_and_nreps(data):
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        return np.nanmean(data, axis = (0,2))
 
-    def _exclude_mips_frames(self, threshold):
-        print(f'Excluding bad frames due to MIPS, threshold: {threshold}')
-        median = np.nanmedian(self.data, axis = (1,2,3))[:,np.newaxis,np.newaxis,np.newaxis]
-        mask = (self.data > median + threshold) | (self.data < median - threshold)
+    def exclude_mips_frames(self, data):
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        print(f'Excluding bad frames due to MIPS, threshold: {self.thres_mips}')
+        median = np.nanmedian(data, 
+                              axis = (1,2,3))[:,np.newaxis,np.newaxis,np.newaxis]
+        mask = (data > median + self.thres_mips) | (data < median - self.thres_mips)
         del median
         gc.collect()
         mask = np.any(mask, axis = (1,2,3))
-        self.data = self.data[~mask]
         print(f'Excluded {np.sum(mask)} frames')
+        data = data[~mask]
     
-    def _set_bad_pixels(self):
+    def set_bad_pixels_to_nan(self, data):
         '''
-        Sets all ignored Pixels in self.data to NaN.
+        Sets all ignored Pixels in self.data to NaN (inplace).
         Keyword Arguments:
         bad_pixels  --- list of tuples (column,row) of pixels to ignore
         '''
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
         print('Excluding bad pixels')
-        bad_pixel_mask = np.zeros(self.data.shape, dtype=bool)
+        bad_pixel_mask = np.zeros(data.shape, dtype=bool)
         for index in self.bad_pixels:
             col = index[0]
             row = index[1]
             bad_pixel_mask[:,row,:,col] = True
-            self.data[bad_pixel_mask] = np.nan
+        data[bad_pixel_mask] = np.nan
         print(f'Excluded {len(self.bad_pixels)} pixels')
 
-    def _correct_common_mode(self):
+    def get_common_corrected_data(self, data):
         '''
         Performs the common mode correction.
         Calculates the median of euch row in data, and substracts it from the row.
         '''
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
         print('Starting common mode correction')  
-        median_common = np.nanmedian(self.data, axis = 3)[:,:,:,np.newaxis]
-        self.data = self.data - median_common
+        median_common = np.nanmedian(data, axis = 3)[:,:,:,np.newaxis]
         print('Data is corrected for common mode')
+        return data - median_common
 
-    def _get_bin_file_name(self):
+    def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
     
-    def _get_fitted_offnoi(self, estimated_mean = 0):
-    
+    def get_fitted_offnoi(self, data, estimated_mean = 0):
+        if np.ndim(data) != 3:
+            print('Data has wrong dimensions')
+            return None
+        
         def fitHistOverNreps(data_to_fit):
+
             def gaussian(x, a1, mu1, sigma1):
                 return a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2))
     
@@ -204,17 +253,17 @@ class Common:
             except:
                 return (np.nan,np.nan,np.nan,np.nan)
             
-        fitAll = np.apply_along_axis(fitHistOverNreps, axis = 0, arr = self.avg_over_nreps)
+        fitAll = np.apply_along_axis(fitHistOverNreps, axis = 0, arr = data)
         return fitAll[0], fitAll[1], fitAll[2], fitAll[3]
 
     def fit_gauss_to_hist(data_to_fit):
         return None
     
-    def _get_common_dir(self):
+    def get_common_dir(self):
         return self.common_dir
     
-    def _get_script_dir(self):
+    def get_script_dir(self):
         return self.results_dir
     
-    def _get_step_dir(self):
+    def get_step_dir(self):
         return self.step_dir

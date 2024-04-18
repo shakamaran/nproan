@@ -5,7 +5,8 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from nproan.commonclass import Common
+from .commonclass import Common
+import nproan.commonfunctions as cf
 
 class Filter(Common):
     def __init__(self):
@@ -13,12 +14,10 @@ class Filter(Common):
         print('Filter object created\nRun load()\n~~~~~')
 
         self.offnoi_dir = None
-        self.data = None
+
         self.offset_raw = None
         self.offset_fitted = None
         self.noise_fitted = None
-        self.avg_over_nreps = None
-        self.event_map = None
 
     def load(self, parameters, offnoi_dir):
         self.bin_file = parameters['signal_bin_file']
@@ -49,14 +48,13 @@ class Filter(Common):
         print('Loading offnoi data\n')
         try:
             #offset_raw is quite big. deleted after use
-            self.offset_raw = np.load(
-                os.path.join(offnoi_dir, 'offset_raw.npy')
+            self.offset_raw = cf.get_array_from_file(
+                offnoi_dir, 'offset_raw.npy')
+            self.offset_fitted = cf.get_array_from_file(
+                offnoi_dir, 'fitted_offset.npy'
             )
-            self.offset_fitted = np.load(
-                os.path.join(offnoi_dir, 'fitted_offset.npy')
-            )
-            self.noise_fitted = np.load(
-                os.path.join(offnoi_dir, 'fitted_noise.npy')
+            self.noise_fitted = cf.get_array_from_file(
+                offnoi_dir, 'fitted_noise.npy'
             )
             self.offnoi_dir = offnoi_dir
             self.common_dir = os.path.dirname(offnoi_dir)
@@ -73,64 +71,64 @@ class Filter(Common):
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created directory for filter step: {self.step_dir}')
 
-        if self.data is None:
-            self.read_data()
+        data = self.get_data()
         #omit bad pixels and mips frames
         if self.bad_pixels is not None:
-            self._set_bad_pixels(self.bad_pixels)
+            self.set_bad_pixels_to_nan(data, self.bad_pixels)
         if self.thres_mips is not None:
-            self._exclude_mips_frames(self.thres_mips)
+            self.exclude_mips_frames(data)
         #offset the data and correct for common mode if necessary
-        self.data -= self.offset_raw[np.newaxis,:,:,:]
+        data -= self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
         gc.collect()
         if self.comm_mode:
-            self._correct_common_mode()
+            data = self.get_common_corrected_data(data)
         if self.fitted_offset:
-            self.data -= self.offset_fitted[np.newaxis,:,np.newaxis,:]
-        self._calc_avg_over_nreps()
+            data -= self.offset_fitted[np.newaxis,:,np.newaxis,:]
+        avg_over_nreps = self.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
-                self.avg_over_nreps)
+                avg_over_nreps)
         #calculate event map and save it
-        self._calc_event_map()
+        event_map = self.calc_event_map(avg_over_nreps)
         np.save(os.path.join(self.step_dir, 'event_map.npy'),
-                self.event_map)
+                event_map)
         np.save(os.path.join(self.step_dir, 'sum_of_event_signals.npy'),
-                self._get_sum_of_event_signals())
+                self.get_sum_of_event_signals(event_map))
         np.save(os.path.join(self.step_dir, 'sum_of_event_counts.npy'),
-                self._get_sum_of_event_counts())
+                self.get_sum_of_event_counts(event_map))
                 
-    def _calc_event_map(self):
+    def calc_event_map(self, avg_over_nreps):
         print('Finding events')
         threshold_map = self.noise_fitted * self.thres_event
-        events = self.avg_over_nreps > threshold_map[np.newaxis,:,:]
-        signals = self.avg_over_nreps[events]
+        events = avg_over_nreps > threshold_map[np.newaxis,:,:]
+        signals = avg_over_nreps[events]
         indices = np.transpose(np.where(events))
         print(f'{signals.shape[0]} events found')
         event_array = np.concatenate(
             (indices, signals[:,np.newaxis]),
               axis = 1
             )
-        self.event_map = np.zeros((64,64), dtype = object)
-        self.event_map.fill([])
+        event_map = np.zeros((64,64), dtype = object)
+        event_map.fill([])
         for entry in event_array:
             row = int(entry[1])
             column = int(entry[2])
             signal = entry[3]
-            self.event_map[row][column] = np.append(
-                self.event_map[row][column], signal
+            event_map[row][column] = np.append(
+                event_map[row][column], signal
                 )
+        return event_map
 
-    def _get_sum_of_event_signals(self):
+    def get_sum_of_event_signals(self, event_map):
         sum_of_events = np.zeros((self.row_size,self.column_size))
         for row in range(self.row_size):
             for column in range(self.column_size):
-                sum_of_events[row][column] = sum(self.event_map[row][column])
+                sum_of_events[row][column] = sum(event_map[row][column])
         return sum_of_events
     
-    def _get_sum_of_event_counts(self):
+    def get_sum_of_event_counts(self, event_map):
         sum_of_events = np.zeros((self.row_size,self.column_size))
         for row in range(self.row_size):
             for column in range(self.column_size):
-                sum_of_events[row][column] = len(self.event_map[row][column])
+                sum_of_events[row][column] = len(event_map[row][column])
         return sum_of_events

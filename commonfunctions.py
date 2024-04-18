@@ -60,3 +60,6 @@ def draw_hist_and_fit(data, bins, mean, sigma, pixel_row, pixel_column):
     plt.ylabel('Frequency')
     plt.legend()
     plt.show()
+
+def get_array_from_file(folder, filename):
+    return np.load(os.path.join(folder, filename), allow_pickle=True)

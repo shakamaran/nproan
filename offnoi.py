@@ -5,18 +5,13 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from nproan.commonclass import Common
+from .commonclass import Common
+import nproan.commonfunctions as cf
 
 class OffNoi(Common):
     def __init__(self):
         super().__init__()
         print('OffNoi object created\nRun load()\n~~~~~')
-        
-        self.data = None
-        self.common_stats = None
-        self.avg_over_frames = None
-        self.avg_over_nreps = None
-        self.avg_over_frames_and_nreps = None
 
     def load(self, parameters):
         self.bin_file = parameters['dark_bin_file']
@@ -40,14 +35,14 @@ class OffNoi(Common):
               comm_mode: {self.comm_mode}\n\
               thres_mips: {self.thres_mips}')
         
-        print('Run read_data()\n~~~~~')
+        print('Run calculate()\n~~~~~')
 
     def calculate(self):
         '''
         first, create the directory for the data
         '''
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        filename = self._get_bin_file_name()
+        filename = self.get_bin_file_name()
         print(f'filename: {filename}')
         self.common_dir = os.path.join(
             self.results_dir, timestamp + '_' + filename + '_data'
@@ -63,39 +58,32 @@ class OffNoi(Common):
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created working directory for offnoi step: {self.step_dir}')
 
-        if self.data is None:
-            self.read_data()
-        
-        '''
-        TODO:
-        - slopes
-        '''
+        data = self.get_data()
         #omit bad pixels and mips frames
         if self.bad_pixels is not None:
-            self._set_bad_pixels(self.bad_pixels)
+            self.set_bad_pixels_to_nan(data, self.bad_pixels)
         if self.thres_mips is not None:
-            self._exclude_mips_frames(self.thres_mips)
+            self.exclude_mips_frames(data)
         #calculate offset_raw on the raw data and save it
-        self._calc_avg_over_frames()
+        avg_over_frames = self.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),
-                self.avg_over_frames)
+                avg_over_frames)
         #calculate offset and save it
-        self._calc_avg_over_frames_and_nreps()
+        avg_over_frames_and_nreps = self.get_avg_over_frames_and_nreps(data)
         np.save(os.path.join(self.step_dir, 'offset.npy'),
-                self.avg_over_frames_and_nreps)
+                avg_over_frames_and_nreps)
         #offset the data and correct for common mode if necessary
-        self.data -= self.avg_over_frames[np.newaxis,:,:,:]
-        self.avg_over_frames = None
+        data -= avg_over_frames[np.newaxis,:,:,:]
+        del avg_over_frames
         gc.collect()
         if self.comm_mode is True:
-            self._correct_common_mode()
+            data = self.get_common_corrected_data(data)
         #calculate rndr signals and save it
-        self._calc_avg_over_nreps()
+        avg_over_nreps = self.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
-                self.avg_over_nreps)
-        self._calc_avg_over_frames_and_nreps()
+                avg_over_nreps)
         #calculate fitted offset and noise and save it (including fit errors)
-        offnoi = self._get_fitted_offnoi()
+        offnoi = self.get_fitted_offnoi(avg_over_nreps)
         np.save(os.path.join(self.step_dir, 'fitted_offset.npy'), offnoi[0])
         np.save(os.path.join(self.step_dir, 'fitted_noise.npy'), offnoi[1])
         np.save(
