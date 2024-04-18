@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from commonclass import Common
+from nproan.commonclass import Common
 
 class OffNoi(Common):
     def __init__(self):
