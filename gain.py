@@ -5,12 +5,12 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from nproan.commonclass import Common
+from commonclass import Common
 
 class Gain(Common):
     def __init__(self):
         super().__init__()
-        print('Gain object created\nRun load_params()\n~~~~~')
+        print('Gain object created\nRun load()\n~~~~~')
         
         self.filter_dir = None
         self.min_signals = None
@@ -19,6 +19,11 @@ class Gain(Common):
         self.event_map_count = None
 
     def load(self, parameters, filter_dir):
+        self.column_size = parameters['common_column_size']
+        self.row_size = parameters['common_row_size']
+        self.nreps = parameters['signal_nreps']
+        self.key_ints = parameters['common_key_ints']
+        self.nframes = parameters['signal_nframes']
         self.min_signals = parameters['gain_min_signals']
 
         print(f'Parameters loaded:\n\
@@ -27,13 +32,8 @@ class Gain(Common):
         print('Loading filter data\n')
         try:
             self.event_map = np.load(
-                os.path.join(filter_dir, 'event_map.npy')
-            )
-            self.event_map_sum = np.load(
-                os.path.join(filter_dir, 'event_map_sum.npy')
-            )
-            self.event_map_count = np.load(
-                os.path.join(filter_dir, 'event_map_count.npy')
+                os.path.join(filter_dir, 'event_map.npy'),
+                allow_pickle=True
             )
             #set the directory where the filter data is stored
             self.filter_dir = filter_dir
@@ -79,7 +79,8 @@ class Gain(Common):
                         np.sqrt(np.diag(covar))[2])
             except:
                 return (np.nan,np.nan,np.nan,np.nan)
-            
+        
+        count_too_few = 0
         for i in range(self.event_map.shape[0]):
             for j in range(self.event_map.shape[1]):
                 signals = self.event_map[i,j]

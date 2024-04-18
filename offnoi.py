@@ -5,12 +5,12 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from nproan.commonclass import Common
+from commonclass import Common
 
 class OffNoi(Common):
     def __init__(self):
         super().__init__()
-        print('OffNoi object created\nRun load_params()\n~~~~~')
+        print('OffNoi object created\nRun load()\n~~~~~')
         
         self.data = None
         self.common_stats = None
@@ -18,7 +18,7 @@ class OffNoi(Common):
         self.avg_over_nreps = None
         self.avg_over_frames_and_nreps = None
 
-    def load(self, parameters, results_dir):
+    def load(self, parameters):
         self.bin_file = parameters['dark_bin_file']
         self.column_size = parameters['common_column_size']
         self.row_size = parameters['common_row_size']
@@ -28,8 +28,6 @@ class OffNoi(Common):
         self.bad_pixels = parameters['common_bad_pixels']
         self.comm_mode = parameters['dark_comm_mode']
         self.thres_mips = parameters['dark_thres_mips']
-
-        self.results_dir = results_dir
 
         print(f'Parameters loaded:\n\
               file: {self.bin_file}\n\

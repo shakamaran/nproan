@@ -5,12 +5,12 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from nproan.commonclass import Common
+from commonclass import Common
 
 class Filter(Common):
     def __init__(self):
         super().__init__()
-        print('Filter object created\nRun load_params()\n~~~~~')
+        print('Filter object created\nRun load()\n~~~~~')
 
         self.offnoi_dir = None
         self.data = None
@@ -63,7 +63,7 @@ class Filter(Common):
         except:
             print('Error loading offnoi data\n')
             return
-        print('Offnoi data loaded\nRun readData()\n~~~~~')
+        print('Offnoi data loaded\nRun read_data()\n~~~~~')
 
     def calculate(self):
         #create the working directory for the filter step

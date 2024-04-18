@@ -59,13 +59,9 @@ class Common:
         self.bad_pixels = None
         self.comm_mode = False
         self.thres_mips = None
-        '''
-        this is the folder where the data will be saved
-        subfolders will be created for each step
-        there are variables in the child classes for the subfolders
-        '''
+
         #the directory where the notebook/script is run
-        self.results_dir = None
+        self.results_dir = os.getcwd()
         #directory with subfolders for each step
         self.common_dir = None
         #directory for the current step
@@ -189,7 +185,6 @@ class Common:
     def _get_fitted_offnoi(self, estimated_mean = 0):
     
         def fitHistOverNreps(data_to_fit):
-    
             def gaussian(x, a1, mu1, sigma1):
                 return a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2))
     
@@ -211,6 +206,9 @@ class Common:
             
         fitAll = np.apply_along_axis(fitHistOverNreps, axis = 0, arr = self.avg_over_nreps)
         return fitAll[0], fitAll[1], fitAll[2], fitAll[3]
+
+    def fit_gauss_to_hist(data_to_fit):
+        return None
     
     def _get_common_dir(self):
         return self.common_dir
