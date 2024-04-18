@@ -45,3 +45,17 @@ def draw_graph(data, save=False, **kwargs):
     if save:
         plt.savefig('graph.png')
     plt.show()
+
+def draw_hist_and_fit(data, bins, mean, sigma):
+    
+    def gaussian(x, a1, mu1, sigma1):
+        return (a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2)))
+    
+    hist, hist_bins = np.histogram(data, bins, density=True)
+    bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
+    plt.hist(data, bins=hist_bins, density=True, alpha=0.5, label='Histogram')
+    plt.plot(bin_centers, gaussian(bin_centers, 1, mean, sigma), 'r-', label='Fitted Curve')
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.legend()
+    plt.show()
