@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import seaborn as sns
+from iminuit import cost, Minuit
 
 '''
 This is the base class.
@@ -185,39 +186,7 @@ class Common:
 
     def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
-    
-    def get_fitted_offnoi(self, data, estimated_mean = 0):
-        if np.ndim(data) != 3:
-            print('Data has wrong dimensions')
-            return None
-        
-        def fitHistOverNreps(data_to_fit):
 
-            def gaussian(x, a1, mu1, sigma1):
-                return a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2))
-    
-            # Initial guesses for parameters
-            initial_guesses = [1, estimated_mean, 1]
-            try:
-                hist, bins = np.histogram(data_to_fit, bins=100, density=True)
-                bin_centers = (bins[:-1] + bins[1:]) / 2
-                params, covar = curve_fit(
-                    gaussian, bin_centers, hist, p0=initial_guesses
-                )
-                #(mean, std_dev, error_mean, error_std_dev)
-                return (params[1],
-                        abs(params[2]), 
-                        np.sqrt(np.diag(covar))[1], 
-                        np.sqrt(np.diag(covar))[2])
-            except:
-                return (np.nan,np.nan,np.nan,np.nan)
-            
-        fitAll = np.apply_along_axis(fitHistOverNreps, axis = 0, arr = data)
-        return fitAll[0], fitAll[1], fitAll[2], fitAll[3]
-
-    def fit_gauss_to_hist(data_to_fit):
-        return None
-    
     def get_common_dir(self):
         return self.common_dir
     
@@ -227,6 +196,80 @@ class Common:
     def get_step_dir(self):
         return self.step_dir
     
+    def get_unbinned_fit_gauss(self, data):
+        ''' fits a gaussian to a histogram of data_to_fit
+        using the unbinned method in minuit
+        returns a np.array in shape (6, rows, columns)
+        index 0: amplitude
+        index 1: mean
+        index 2: sigma
+        index 3: error_amplitude
+        index 4: error_mean
+        index 5: error_sigma
+        '''
+        if data.ndim != 3:
+            print('Data has wrong dimensions')
+            return
+        #apply the function to every frame
+        output = np.apply_along_axis(unbinned_fit_gauss_to_hist, axis = 0, arr = data)
+        print(output.shape)
+        return 
+
+    def get_fit_gauss(self, data):
+        ''' fits a gaussian to a histogram of data_to_fit
+        using the scipy curve_fit method
+        returns a np.array in shape (6, rows, columns)
+        index 0: amplitude
+        index 1: mean
+        index 2: sigma
+        index 3: error_amplitude
+        index 4: error_mean
+        index 5: error_sigma
+        '''
+        if data.ndim != 3:
+            print('Data has wrong dimensions')
+            return
+        #apply the function to every frame
+        output = np.apply_along_axis(fit_gauss_to_hist, axis = 0, arr = data)
+        print(output.shape)
+        return
+
+def fit_gauss_to_hist(data_to_fit):
+    ''' fits a gaussian to a histogram of data_to_fit
+    return (amplitude, mean, sigma), error_mean, error_sigma
+    '''
+    guess = [1, np.median(data_to_fit), np.std(data_to_fit)]
+    try:
+        hist, bins = np.histogram(data_to_fit, bins=100, density=True)
+        bin_centers = (bins[:-1] + bins[1:]) / 2
+        params, covar = curve_fit(gaussian, bin_centers, hist, p0=guess)
+        return np.array([params[0],
+                         params[1], 
+                         params[2],
+                         np.sqrt(np.diag(covar))[0],
+                         np.sqrt(np.diag(covar))[1], 
+                         np.sqrt(np.diag(covar))[2]])
+    except:
+        return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+
+def unbinned_fit_gauss_to_hist(data_to_fit):
+        c = cost.UnbinnedNLL(data_to_fit, gaussian)
+        m = Minuit(c, 
+                   a1=1, 
+                   mu1=np.median(data_to_fit), 
+                   sigma1=np.std(data_to_fit))
+        m.limits['a1'] = (0, 100)
+        m.limits['mu1'] = (np.min(data_to_fit), np.max(data_to_fit))
+        m.limits['sigma1'] = (0, 100)
+        m.migrad()
+        if not m.valid:
+            return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+        return np.array([m.values['a1'],
+                         m.values['mu1'],
+                         m.values['sigma1'],
+                         m.errors['a1'],
+                         m.errors['mu1'],
+                         m.errors['sigma1']])
 
 def draw_hist(data, save=False, **kwargs):
     '''

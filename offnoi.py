@@ -75,12 +75,7 @@ class OffNoi(cm.Common):
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
                 avg_over_nreps)
         #calculate fitted offset and noise and save it (including fit errors)
-        offnoi = self.get_fitted_offnoi(avg_over_nreps)
-        np.save(os.path.join(self.step_dir, 'fitted_offset.npy'), offnoi[0])
-        np.save(os.path.join(self.step_dir, 'fitted_noise.npy'), offnoi[1])
-        np.save(
-            os.path.join(self.step_dir, 'fitted_offset_error.npy'), offnoi[2]
-        )
-        np.save(
-            os.path.join(self.step_dir, 'fitted_noise_error.npy'), offnoi[3]
-        )
+        fit_unbinned = self.get_unbinned_fit_gauss(avg_over_nreps)
+        fit_curve_fit = self.get_fit_gauss(avg_over_nreps)
+        np.save(os.path.join(self.step_dir, 'offnoi_fit_unbinned.npy'), fit_unbinned)
+        np.save(os.path.join(self.step_dir, 'offnoi_fit.npy'), fit_curve_fit)
