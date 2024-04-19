@@ -5,10 +5,9 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from .commonclass import Common
-import nproan.commonfunctions as cf
+import common as cm
 
-class Gain(Common):
+class Gain(cm.Common):
     def __init__(self):
         super().__init__()
         print('Gain object created\nRun load()\n~~~~~')
@@ -32,7 +31,7 @@ class Gain(Common):
         
         print('Loading filter data\n')
         try:
-            self.event_map = cf.get_array_from_file(
+            self.event_map = cm.get_array_from_file(
                 filter_dir, 'event_map.npy')
             #set the directory where the filter data is stored
             self.filter_dir = filter_dir

@@ -5,10 +5,9 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from .commonclass import Common
-import nproan.commonfunctions as cf
+import common as cm
 
-class Filter(Common):
+class Filter(cm.Common):
     def __init__(self):
         super().__init__()
         print('Filter object created\nRun load()\n~~~~~')
@@ -48,12 +47,12 @@ class Filter(Common):
         print('Loading offnoi data\n')
         try:
             #offset_raw is quite big. deleted after use
-            self.offset_raw = cf.get_array_from_file(
+            self.offset_raw = cm.get_array_from_file(
                 offnoi_dir, 'offset_raw.npy')
-            self.offset_fitted = cf.get_array_from_file(
+            self.offset_fitted = cm.get_array_from_file(
                 offnoi_dir, 'fitted_offset.npy'
             )
-            self.noise_fitted = cf.get_array_from_file(
+            self.noise_fitted = cm.get_array_from_file(
                 offnoi_dir, 'fitted_noise.npy'
             )
             self.offnoi_dir = offnoi_dir

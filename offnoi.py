@@ -5,11 +5,9 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-from .commonclass import Common
-import nproan.commonfunctions as cf
-import commonclass
+import common as cm
 
-class OffNoi(Common):
+class OffNoi(cm.Common):
     def __init__(self):
         super().__init__()
         print('OffNoi object created\nRun load()\n~~~~~')

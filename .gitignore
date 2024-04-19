@@ -56,4 +56,4 @@ pip-delete-this-directory.txt
 *_data/
 
 #Exclude testing file
-test*py
+test*
