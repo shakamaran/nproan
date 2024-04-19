@@ -7,6 +7,7 @@ from scipy.optimize import curve_fit
 
 from .commonclass import Common
 import nproan.commonfunctions as cf
+import commonclass
 
 class OffNoi(Common):
     def __init__(self):

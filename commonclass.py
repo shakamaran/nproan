@@ -47,6 +47,7 @@ parameters: dict:
 }
 My current philosophy for doing stuff:
 - Parameters from the parameter file are stored in the class variables
+- parameter file is in JSON format
 - for every step class, the whole parameter file must be loaded
 - the filter class loads the offnoi data, and checks consistency with the
     parameter file
