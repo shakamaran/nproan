@@ -6,54 +6,45 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 import common as cm
+import params as pm
 
 class OffNoi(cm.Common):
-    def __init__(self):
-        super().__init__()
-        print('OffNoi object created\nRun load()\n~~~~~')
+    def __init__(self, prm_file):
+        self.load(prm_file)
+        print('OffNoi object created')
 
-    def load(self, parameters):
-        self.bin_file = parameters['dark_bin_file']
+    def load(self, prm_file):
+        prm = pm.Params(prm_file)
+        parameters = prm.get_dict()
+        #common parameters
+        self.results_dir = parameters['common_results_dir']
         self.column_size = parameters['common_column_size']
         self.row_size = parameters['common_row_size']
-        self.nreps = parameters['dark_nreps']
         self.key_ints = parameters['common_key_ints']
-        self.nframes = parameters['dark_nframes']
         self.bad_pixels = parameters['common_bad_pixels']
+        #offnoi parameters
+        self.bin_file = parameters['dark_bin_file']
+        self.nreps = parameters['dark_nreps']
+        self.nframes = parameters['dark_nframes']
         self.comm_mode = parameters['dark_comm_mode']
         self.thres_mips = parameters['dark_thres_mips']
 
-        print(f'Parameters loaded:\n\
-              file: {self.bin_file}\n\
-              column_size: {self.column_size}\n\
-              row_size: {self.row_size}\n\
-              nreps: {self.nreps}\n\
-              key_ints: {self.key_ints}\n\
-              max_frames: {self.nframes}\n\
-              bad_pixels: {self.bad_pixels}\n\
-              comm_mode: {self.comm_mode}\n\
-              thres_mips: {self.thres_mips}')
-        
-        print('Run calculate()\n~~~~~')
-
-    def calculate(self):
-        '''
-        first, create the directory for the data
-        '''
+        #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        filename = self.get_bin_file_name()
-        print(f'filename: {filename}')
+        filename = self.get_bin_file_name()[:-4]
         self.common_dir = os.path.join(
-            self.results_dir, timestamp + '_' + filename + '_data'
-        )
+            self.results_dir, timestamp + '_' + filename)
+        self.step_dir = os.path.join(self.common_dir, 
+            f'offnoi_{self.nreps}reps_{self.nframes}frames')
+
+        print(f'Parameters loaded:)')
+        prm.print_contents()
+
+    def calculate(self):   
+        #reate the directory for the data
         os.makedirs(self.common_dir, exist_ok=True)
         print(f'Created common directory for data: {self.common_dir}')
-
         #now, create the working directory for the offnoi step
-        self.step_dir = os.path.join(
-            self.common_dir, 
-            f'offnoi_{self.nreps}reps_{self.nframes}frames'
-        )
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created working directory for offnoi step: {self.step_dir}')
 

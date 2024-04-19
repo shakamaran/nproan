@@ -43,25 +43,11 @@ My current philosophy for doing stuff:
 '''
 
 class Common:
-    def __init__(self):
-        # these variables are set in the parameters dictionary
-        self.bin_file = None
-        self.column_size = None
-        self.row_size  = None
-        self.nreps  = None
-        self.key_ints  = None
-        self.nframes  = None
-        self.bad_pixels = None
-        self.comm_mode = False
-        self.thres_mips = None
-
-        #the directory where the notebook/script is run
-        self.results_dir = os.getcwd()
-        #directory with subfolders for each step
-        self.common_dir = None
-        #directory for the current step
-        self.step_dir = None
-
+    '''
+    there is no constructor here, everything is done in the child classes
+    take care with variable names!
+    eg: self.nframes must have the same name in every Child class
+    '''
     def get_data(self):
         frames_per_chunk = 20
         raw_row_size = self.column_size + self.key_ints

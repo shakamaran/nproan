@@ -6,11 +6,12 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 import common as cm
+import params as pm
 
 class Filter(cm.Common):
-    def __init__(self):
-        super().__init__()
-        print('Filter object created\nRun load()\n~~~~~')
+    def __init__(self, prm_file, offnoi_dir):
+        self.load(prm_file, offnoi_dir)
+        print('Filter object created')
 
         self.offnoi_dir = None
 
@@ -18,33 +19,38 @@ class Filter(cm.Common):
         self.offset_fitted = None
         self.noise_fitted = None
 
-    def load(self, parameters, offnoi_dir):
-        self.bin_file = parameters['signal_bin_file']
+    def load(self, prm_file, offnoi_dir):
+        prm = pm.Params(prm_file)
+        parameters = prm.get_dict()
+        #common parameters
+        self.results_dir = parameters['common_results_dir']
         self.column_size = parameters['common_column_size']
         self.row_size = parameters['common_row_size']
-        self.nreps = parameters['signal_nreps']
         self.key_ints = parameters['common_key_ints']
-        self.nframes = parameters['signal_nframes']
         self.bad_pixels = parameters['common_bad_pixels']
+        #filter parameters
+        self.bin_file = parameters['signal_bin_file']
+        self.nreps = parameters['signal_nreps']
+        self.nframes = parameters['signal_nframes']
         self.comm_mode = parameters['signal_comm_mode']
         self.thres_mips = parameters['signal_thres_mips']
         self.thres_event = parameters['signal_thres_event']
-        self.fitted_offset = parameters['signal_fitted_offset']
+        self.use_fitted_offset = parameters['signal_use_fitted_offset']
 
-        print(f'Parameters loaded:\n\
-              file: {self.bin_file}\n\
-              column_size: {self.column_size}\n\
-              row_size: {self.row_size}\n\
-              nreps: {self.nreps}\n\
-              key_ints: {self.key_ints}\n\
-              max_frames: {self.nframes}\n\
-              bad_pixels: {self.bad_pixels}\n\
-              comm_mode: {self.comm_mode}\n\
-              thres_mips: {self.thres_mips}\n\
-              thres_event: {self.thres_event}\n\
-              fitted_offset: {self.fitted_offset}')
+        #directories
+        #set self.common_dir to the parent directory of offnoi_dir
+        self.common_dir = os.path.dirname(offnoi_dir)
+        self.step_dir = None
         
-        print('Loading offnoi data\n')
+        print(f'Parameters loaded:')
+        prm.print_contents()
+        
+        print('Checking parameters in offnoi directory')
+        #look for a json file in the offnoi directory 
+        if (not prm.same_common_params(offnoi_dir)) \
+            or (not prm.same_dark_params(offnoi_dir)):
+            print('Parameters in offnoi directory do not match')
+            return
         try:
             #offset_raw is quite big. deleted after use
             self.offset_raw = cm.get_array_from_file(
@@ -57,16 +63,16 @@ class Filter(cm.Common):
             )
             self.offnoi_dir = offnoi_dir
             self.common_dir = os.path.dirname(offnoi_dir)
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            self.step_dir = os.path.join(
+                self.common_dir, timestamp + f'_filter_{self.thres_event}_threshold'
+            )
         except:
             print('Error loading offnoi data\n')
             return
-        print('Offnoi data loaded\nRun read_data()\n~~~~~')
 
     def calculate(self):
         #create the working directory for the filter step
-        self.step_dir = os.path.join(
-            self.common_dir, f'filter_{self.thres_event}_threshold'
-        )
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created directory for filter step: {self.step_dir}')
 
@@ -82,7 +88,7 @@ class Filter(cm.Common):
         gc.collect()
         if self.comm_mode:
             data = self.get_common_corrected_data(data)
-        if self.fitted_offset:
+        if self.use_fitted_offset:
             data -= self.offset_fitted[np.newaxis,:,np.newaxis,:]
         avg_over_nreps = self.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),

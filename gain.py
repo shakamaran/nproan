@@ -6,30 +6,38 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 import common as cm
+import params as pm
 
 class Gain(cm.Common):
-    def __init__(self):
-        super().__init__()
-        print('Gain object created\nRun load()\n~~~~~')
-        
-        self.filter_dir = None
-        self.min_signals = None
-        self.event_map = None
-        self.event_map_sum = None
-        self.event_map_count = None
+    def __init__(self, prm_file, filter_dir):
+        self.load(self,prm_file, filter_dir)
+        print('Gain object created')
 
-    def load(self, parameters, filter_dir):
+    def load(self, prm_file, filter_dir):
+        prm = pm.Params(prm_file)
+        parameters = prm.get_dict()
+        #common parameters
+        self.results_dir = parameters['common_results_dir']
         self.column_size = parameters['common_column_size']
         self.row_size = parameters['common_row_size']
-        self.nreps = parameters['signal_nreps']
         self.key_ints = parameters['common_key_ints']
+        self.bad_pixels = parameters['common_bad_pixels']
+
+        #gain parameters
+        self.nreps = parameters['signal_nreps']
         self.nframes = parameters['signal_nframes']
         self.min_signals = parameters['gain_min_signals']
 
-        print(f'Parameters loaded:\n\
-              min_signals: {self.min_signals}')
+        print(f'Parameters loaded:')
+        prm.print_contents()
         
-        print('Loading filter data\n')
+        print('Checking parameters in filter directory')
+        #look for a json file in the filter directory
+        if (not prm.same_common_params(filter_dir)) \
+            or (not prm.same_offnoi_params(filter_dir) \
+            or (not prm.same_filter_params(filter_dir))):
+            print('Parameters in filter directory do not match')
+            return
         try:
             self.event_map = cm.get_array_from_file(
                 filter_dir, 'event_map.npy')
@@ -37,6 +45,10 @@ class Gain(cm.Common):
             self.filter_dir = filter_dir
             #this is the parent directory. data from this step is stored there
             self.common_dir = os.path.dirname(filter_dir)
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            self.step_dir = os.path.join(
+                self.common_dir, timestamp + f'_gain_{self.min_signals}_minsignals'
+            )
         except:
             print('Error loading filter data\n')
             return

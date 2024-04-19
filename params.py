@@ -1,72 +1,83 @@
 import os
+import fnmatch
 import json
 
 class Params:
-
+    '''
+    To change the parameters, edit them here.
+    Also change the constructor of the class that uses these parameters.
+    '''
     common_params = {
+        'common_results_dir': None,         #str
         'common_column_size': 64,           #int
         'common_row_size': 64,              #int
         'common_key_ints': 3,               #int
         'common_bad_pixels': None           #list of tuples (column,row)
     }
-    signal_params = {
-        'signal_bin_file': None,            #str
-        'signal_nreps': None,               #int
-        'signal_nframes': 100,              #int
-        'signal_comm_mode': True,           #bool
-        'signal_thres_mips': None,          #int
-        'signal_thres_event': 5,            #int
-        'signal_use_fitted_offset': True    #bool
+    offnoi_params = {
+        'offnoi_bin_file': None,              #str
+        'offnoi_nreps': None,                 #int
+        'offnoi_nframes': 100,                #int
+        'offnoi_comm_mode': True,             #bool
+        'offnoi_thres_mips': None             #int
     }
-    dark_params = {
-        'dark_bin_file': None,              #str
-        'dark_nreps': None,                 #int
-        'dark_nframes': 100,                #int
-        'dark_comm_mode': True,             #bool
-        'dark_thres_mips': None             #int
+    filter_params = {
+        'filter_bin_file': None,            #str
+        'filter_nreps': None,               #int
+        'filter_nframes': 100,              #int
+        'filter_comm_mode': True,           #bool
+        'filter_thres_mips': None,          #int
+        'filter_thres_event': 5            #int  
     }
+    gain_params = {
+        'gain_min_signals': 5               #int
+    }
+    
     #required parameters, where there is no default value
     #file cannot be loaded if these are missing
     required_params = [
-        'signal_bin_file',
-        'signal_nreps',
-        'dark_bin_file',
-        'dark_nreps'
+        'offnoi_bin_file',
+        'filter_nreps',
+        'offnoi_bin_file',
+        'filter_nreps'
     ]
 
 
     def __init__(self, json_path):
-        self.default_dict = {**self.common_params, **self.signal_params, **self.dark_params}
+        self.default_dict = {**self.common_params,
+                             **self.offnoi_params,
+                             **self.filter_params,
+                             **self.gain_params}
         self.update(json_path)
 
     def update(self, json_path):
         with open(json_path) as f:
             self.inp_dict = json.load(f)
-        self.out_dict = self.default_dict.copy()
+        self.param_dict = self.default_dict.copy()
         #check consistency of the input dict with the default dict
         for key,value in self.inp_dict.items():
             if key not in self.default_dict:
                 print(f"{key} is not a valid parameter.")
             else:
-                self.out_dict[key] = value
+                self.param_dict[key] = value
         #check for missing parameters, using default if not required
         #if parameter has no default, set out_dict to None
-        for key,value in self.out_dict.items():
+        for key,value in self.param_dict.items():
             if value is None:
                 if key in self.required_params:
                     print(f"{key} is missing in the file.")
                     print('Please provide a complete parameter file')
                     print('Run .info() to see the required parameters.')
-                    self.out_dict = None
+                    self.param_dict = None
                     break
                 else:
                     print(f"{key} is missing. Using default: {self.default_dict[key]}")
                 
     def get_dict(self):
-        return self.out_dict
+        return self.param_dict
 
     def print_contents(self):
-        for key, value in self.out_dict.items():
+        for key, value in self.param_dict.items():
             print(f"{key}: {value}")
 
     def info(self):
@@ -90,4 +101,68 @@ class Params:
     
     def save(self, path):
         with open(path, 'w') as f:
-            json.dump(self.out_dict, f, indent=4)
+            json.dump(self.param_dict, f, indent=4)
+
+    def get_json_file_name_in_folder(self, folder_path):
+        count = 0
+        file =''
+        for file in os.lostdir(folder_path):
+            if fnmatch.fnmatch(file, '*.json'):
+                file = os.path.join(folder_path, file)
+                count += 1
+        if count == 1:
+            return file
+        else:
+            return False
+            
+    def same_common_params(self, folder_path):
+        json_file = self.get_json_file_name_in_folder(folder_path)
+        if json_file:
+            with open(json_file) as f:
+                dict = json.load(f)
+            for key in self.common_params.keys():
+                if self.param_dict[key] != dict[key]:
+                    return False
+            return True
+        else:
+            print('No json file found in the folder')
+            return False
+        
+    def same_offnoi_params(self, folder_path):
+        json_file = self.get_json_file_name_in_folder(folder_path)
+        if json_file:
+            with open(json_file) as f:
+                dict = json.load(f)
+            for key in self.offnoi_params.keys():
+                if self.param_dict[key] != dict[key]:
+                    return False
+            return True
+        else:
+            print('No json file found in the folder')
+            return False
+    
+    def same_filter_params(self, folder_path):
+        json_file = self.get_json_file_name_in_folder(folder_path)
+        if json_file:
+            with open(json_file) as f:
+                dict = json.load(f)
+            for key in self.filter_params.keys():
+                if self.param_dict[key] != dict[key]:
+                    return False
+            return True
+        else:
+            print('No json file found in the folder')
+            return False
+        
+    def same_gain_params(self, folder_path):
+        json_file = self.get_json_file_name_in_folder(folder_path)
+        if json_file:
+            with open(json_file) as f:
+                dict = json.load(f)
+            for key in self.gain_params.keys():
+                if self.param_dict[key] != dict[key]:
+                    return False
+            return True
+        else:
+            print('No json file found in the folder')
+            return False
