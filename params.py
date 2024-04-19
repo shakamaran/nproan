@@ -19,7 +19,8 @@ class Params:
         'offnoi_nreps': None,                 #int
         'offnoi_nframes': 100,                #int
         'offnoi_comm_mode': True,             #bool
-        'offnoi_thres_mips': None             #int
+        'offnoi_thres_mips': None,            #int
+        'offnoi_thres_bad_frames': 5          #int
     }
     filter_params = {
         'filter_bin_file': None,            #str
@@ -28,7 +29,8 @@ class Params:
         'filter_comm_mode': True,           #bool
         'filter_thres_mips': None,          #int
         'filter_thres_event': 5,            #int
-        'filter_use_fitted_offset': False   #bool
+        'filter_use_fitted_offset': False,  #bool
+        'filter_thres_bad_frames': 5        #int
     }
     gain_params = {
         'gain_min_signals': 5               #int

@@ -51,6 +51,10 @@ class Common:
     eg: self.nframes must have the same name in every Child class
     '''
     def get_data(self):
+        '''reads the binary file and returns the data as a numpy array.
+        It is read one chunk at a time, to save memory.
+        The data is reshaped into the dimensions 
+        (nframes, column_size, nreps, row_size)'''
         frames_per_chunk = 20
         raw_row_size = self.column_size + self.key_ints
         raw_frame_size = self.column_size * raw_row_size * self.nreps
@@ -103,7 +107,7 @@ class Common:
             frames_inc = inp_data.shape[0]
             #check if inp_data would make self.data full
             if frames_here + frames_inc > self.nframes:
-                inp_data = -inp_data.reshape(-1, self.column_size, 
+                inp_data = inp_data.reshape(-1, self.column_size, 
                                              self.nreps, 
                                              self.row_size).astype(float)
                 output[frames_here:] = inp_data[:self.nframes-frames_here]
@@ -113,13 +117,14 @@ class Common:
                 return output
             #here is the polarity from the c++ code
             output[frames_here:frames_here+frames_inc] = \
-            -inp_data.reshape(-1, self.column_size, 
+            inp_data.reshape(-1, self.column_size, 
                               self.nreps, self.row_size).astype(float)
             frames_here += frames_inc
             gc.collect()
 
     @staticmethod
     def get_avg_over_frames(data):
+    #TODO: move this to outside of class
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
@@ -127,6 +132,7 @@ class Common:
 
     @staticmethod
     def get_avg_over_nreps(data):
+    #TODO: move this to outside of class
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
@@ -134,12 +140,16 @@ class Common:
 
     @staticmethod
     def get_avg_over_frames_and_nreps(data):
+    #TODO: move this to outside of class
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = (0,2))
 
     def exclude_mips_frames(self, data):
+        '''Calculates the median of each frame and excludes frames that are
+        above or below the median by a certain threshold.
+        returns the data without the bad frames'''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
@@ -151,13 +161,33 @@ class Common:
         gc.collect()
         mask = np.any(mask, axis = (1,2,3))
         print(f'Excluded {np.sum(mask)} frames')
-        data = data[~mask]
+        return data[~mask]
+
+    def exclude_bad_frames(self, data):
+        '''Calculates the average of each frame and excludes frames that are
+        above or below the fitted mean by a certain threshold.
+        It saves a .png file in the step directory.
+        returns the data without the bad frames'''
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        print('Excluding bad frames')
+        avg_per_frame = np.nanmean(data, axis = (1,2,3))
+        fit = fit_gauss_to_hist(avg_per_frame)
+        lower_bound = fit[1] - self.thres_bad_frames*fit[2]
+        upper_bound = fit[1] + self.thres_bad_frames*fit[2]
+        bad_pixel_mask = (avg_per_frame < lower_bound) | (avg_per_frame > upper_bound)
+        excluded_frames = np.sum(bad_pixel_mask)
+        print(f'Excluded {excluded_frames} frames')
+        print(f'mean: {fit[1]}, sigma: {fit[2]} lower bound: {lower_bound}, upper bound: {upper_bound}')
+        title = f'Average signal per frame. Excluded {excluded_frames} frames'
+        draw_hist_and_gauss_fit(avg_per_frame, 100, fit[0], fit[1], fit[2],
+                                title, 
+                                save_to = self.step_dir)
+        return data[~bad_pixel_mask]
     
     def set_bad_pixels_to_nan(self, data):
-        '''
-        Sets all ignored Pixels in self.data to NaN (inplace).
-        Keyword Arguments:
-        bad_pixels  --- list of tuples (column,row) of pixels to ignore
+        '''Sets all ignored Pixels in data to NaN.
         '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
@@ -170,6 +200,7 @@ class Common:
             bad_pixel_mask[:,row,:,col] = True
         data[bad_pixel_mask] = np.nan
         print(f'Excluded {len(self.bad_pixels)} pixels')
+        return data
 
     def get_common_corrected_data(self, data):
         '''
@@ -196,47 +227,45 @@ class Common:
     def get_step_dir(self):
         return self.step_dir
     
-    def get_unbinned_fit_gauss(self, data):
-        ''' fits a gaussian to a histogram of data_to_fit
-        using the unbinned method in minuit
-        returns a np.array in shape (6, rows, columns)
-        index 0: amplitude
-        index 1: mean
-        index 2: sigma
-        index 3: error_amplitude
-        index 4: error_mean
-        index 5: error_sigma
-        '''
-        if data.ndim != 3:
-            print('Data has wrong dimensions')
-            return
-        #apply the function to every frame
-        output = np.apply_along_axis(unbinned_fit_gauss_to_hist, axis = 0, arr = data)
-        print(output.shape)
-        return 
-
-    def get_fit_gauss(self, data):
-        ''' fits a gaussian to a histogram of data_to_fit
-        using the scipy curve_fit method
-        returns a np.array in shape (6, rows, columns)
-        index 0: amplitude
-        index 1: mean
-        index 2: sigma
-        index 3: error_amplitude
-        index 4: error_mean
-        index 5: error_sigma
-        '''
-        if data.ndim != 3:
-            print('Data has wrong dimensions')
-            return
-        #apply the function to every frame
-        output = np.apply_along_axis(fit_gauss_to_hist, axis = 0, arr = data)
-        print(output.shape)
+def get_unbinned_fit_gauss(data):
+    ''' fits a gaussian to a histogram of data_to_fit
+    using the unbinned method in minuit
+    returns a np.array in shape (6, rows, columns)
+    index 0: amplitude
+    index 1: mean
+    index 2: sigma
+    index 3: error_amplitude
+    index 4: error_mean
+    index 5: error_sigma
+    '''
+    if data.ndim != 3:
+        print('Data has wrong dimensions')
         return
+    #apply the function to every frame
+    output = np.apply_along_axis(unbinned_fit_gauss_to_hist, axis = 0, arr = data)
+    return output
+
+def get_fit_gauss(data):
+    ''' fits a gaussian to a histogram of data_to_fit
+    using the scipy curve_fit method
+    returns a np.array in shape (6, rows, columns)
+    index 0: amplitude
+    index 1: mean
+    index 2: sigma
+    index 3: error_amplitude
+    index 4: error_mean
+    index 5: error_sigma
+    '''
+    if data.ndim != 3:
+        print('Data has wrong dimensions')
+        return
+    #apply the function to every frame
+    output = np.apply_along_axis(fit_gauss_to_hist, axis = 0, arr = data)
+    return output
 
 def fit_gauss_to_hist(data_to_fit):
     ''' fits a gaussian to a histogram of data_to_fit
-    return (amplitude, mean, sigma), error_mean, error_sigma
+    return np.array[amplitude, mean, sigma, error_mean, error_sigma]
     '''
     guess = [1, np.median(data_to_fit), np.std(data_to_fit)]
     try:
@@ -253,6 +282,10 @@ def fit_gauss_to_hist(data_to_fit):
         return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
 
 def unbinned_fit_gauss_to_hist(data_to_fit):
+        ''' fits a gaussian to a histogram of data_to_fit
+        return np.array[amplitude, mean, sigma, error_mean, error_sigma]
+        '''
+        #TODO: this doesnt seem to work: test this!
         c = cost.UnbinnedNLL(data_to_fit, gaussian)
         m = Minuit(c, 
                    a1=1, 
@@ -310,20 +343,20 @@ def draw_graph(data, save=False, **kwargs):
         plt.savefig('graph.png')
     plt.show()
 
-def draw_hist_and_fit(data, bins, mean, sigma, pixel_row, pixel_column):
-    
-    def gaussian(x, a1, mu1, sigma1):
-        return (a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2)))
+def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, save_to=None):
     
     hist, hist_bins = np.histogram(data, bins, density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
     plt.hist(data, bins=hist_bins, density=True, alpha=0.5, label='Histogram')
-    plt.plot(bin_centers, gaussian(bin_centers, 1, mean, sigma), 'r-', label='Fitted Curve')
-    plt.title(f'Fitted histogram for pixel ({pixel_row},{pixel_column})')
+    plt.plot(bin_centers, gaussian(bin_centers, amplitude, mean, sigma), 'r-', label='Fitted Curve')
+    plt.title(title)
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.legend()
-    plt.show()
+    if save_to is not None:
+        plt.savefig(save_to + '\\bad_frames.png'), 
+    else:
+        plt.show()
 
 def get_array_from_file(folder, filename):
     return np.load(os.path.join(folder, filename), allow_pickle=True)

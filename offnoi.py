@@ -28,6 +28,7 @@ class OffNoi(cm.Common):
         self.nframes = parameters['offnoi_nframes']
         self.comm_mode = parameters['offnoi_comm_mode']
         self.thres_mips = parameters['offnoi_thres_mips']
+        self.thres_bad_frames = parameters['offnoi_thres_bad_frames']
 
         #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -53,9 +54,11 @@ class OffNoi(cm.Common):
         data = self.get_data()
         #omit bad pixels and mips frames
         if self.bad_pixels is not None:
-            self.set_bad_pixels_to_nan(data, self.bad_pixels)
+            data = self.set_bad_pixels_to_nan(data)
+        if self.thres_bad_frames is not None:
+            data = self.exclude_bad_frames(data)
         if self.thres_mips is not None:
-            self.exclude_mips_frames(data)
+            data = self.exclude_mips_frames(data)
         #calculate offset_raw on the raw data and save it
         avg_over_frames = self.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),
@@ -75,7 +78,7 @@ class OffNoi(cm.Common):
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
                 avg_over_nreps)
         #calculate fitted offset and noise and save it (including fit errors)
-        fit_unbinned = self.get_unbinned_fit_gauss(avg_over_nreps)
-        fit_curve_fit = self.get_fit_gauss(avg_over_nreps)
+        fit_unbinned = cm.get_unbinned_fit_gauss(avg_over_nreps)
+        fit_curve_fit = cm.get_fit_gauss(avg_over_nreps)
         np.save(os.path.join(self.step_dir, 'offnoi_fit_unbinned.npy'), fit_unbinned)
         np.save(os.path.join(self.step_dir, 'offnoi_fit.npy'), fit_curve_fit)

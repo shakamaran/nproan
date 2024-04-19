@@ -30,6 +30,7 @@ class Filter(cm.Common):
         self.thres_mips = parameters['filter_thres_mips']
         self.thres_event = parameters['filter_thres_event']
         self.use_fitted_offset = parameters['filter_use_fitted_offset']
+        self.thres_bad_frames = parameters['filter_thres_bad_frames']
 
         #directories
         #set self.common_dir to the parent directory of offnoi_dir
@@ -85,9 +86,11 @@ class Filter(cm.Common):
         data = self.get_data()
         #omit bad pixels and mips frames
         if self.bad_pixels is not None:
-            self.set_bad_pixels_to_nan(data, self.bad_pixels)
+            data = self.set_bad_pixels_to_nan(data)
+        if self.thres_bad_frames is not None:
+            data = self.exclude_bad_frames(data)
         if self.thres_mips is not None:
-            self.exclude_mips_frames(data)
+            data = self.exclude_mips_frames(data)
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
