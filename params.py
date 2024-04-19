@@ -46,12 +46,18 @@ class Params:
     ]
 
 
-    def __init__(self, json_path):
+    def __init__(self, json_path=None):
         self.default_dict = {**self.common_params,
                              **self.offnoi_params,
                              **self.filter_params,
                              **self.gain_params}
-        self.update(json_path)
+        self.inp_dict = None
+        self.param_dict = None
+        if json_path is not None:
+            self.update(json_path)
+        else:
+            print('No parameter file provided.')
+            print('Run save_default_file() to save a default parameter file.')
 
     def update(self, json_path):
         try:
