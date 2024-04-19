@@ -15,6 +15,7 @@ TODO:
 - add more documentation
 - write wiki
 - write functions for fitting histograms using minuit
+- save outputs from fitting to a file
 
 My current philosophy for doing stuff:
 - Parameters from the parameter file are stored in the class variables

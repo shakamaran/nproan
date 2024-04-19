@@ -10,12 +10,12 @@ import params as pm
 
 class Gain(cm.Common):
     def __init__(self, prm_file, filter_dir):
-        self.load(self,prm_file, filter_dir)
+        self.load(prm_file, filter_dir)
         print('Gain object created')
 
     def load(self, prm_file, filter_dir):
-        prm = pm.Params(prm_file)
-        parameters = prm.get_dict()
+        self.prm = pm.Params(prm_file)
+        parameters = self.prm.get_dict()
         #common parameters
         self.results_dir = parameters['common_results_dir']
         self.column_size = parameters['common_column_size']
@@ -24,18 +24,18 @@ class Gain(cm.Common):
         self.bad_pixels = parameters['common_bad_pixels']
 
         #gain parameters
-        self.nreps = parameters['signal_nreps']
-        self.nframes = parameters['signal_nframes']
+        self.nreps = parameters['filter_nreps']
+        self.nframes = parameters['filter_nframes']
         self.min_signals = parameters['gain_min_signals']
 
         print(f'Parameters loaded:')
-        prm.print_contents()
+        self.prm.print_contents()
         
         print('Checking parameters in filter directory')
         #look for a json file in the filter directory
-        if (not prm.same_common_params(filter_dir)) \
-            or (not prm.same_offnoi_params(filter_dir) \
-            or (not prm.same_filter_params(filter_dir))):
+        if (not self.prm.same_common_params(filter_dir)) \
+            or (not self.prm.same_offnoi_params(filter_dir) \
+            or (not self.prm.same_filter_params(filter_dir))):
             print('Parameters in filter directory do not match')
             return
         try:
@@ -60,6 +60,8 @@ class Gain(cm.Common):
                                      f'gain_{self.min_signals}_min_signals')
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created directory for gain step: {self.step_dir}')
+        # and save the parameter file there
+        self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
         
         fits = self.get_gain_fit(self.event_map)
         np.save(os.path.join(self.step_dir, 'fit_mean.npy'), fits[0])

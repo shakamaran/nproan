@@ -14,8 +14,8 @@ class OffNoi(cm.Common):
         print('OffNoi object created')
 
     def load(self, prm_file):
-        prm = pm.Params(prm_file)
-        parameters = prm.get_dict()
+        self.prm = pm.Params(prm_file)
+        parameters = self.prm.get_dict()
         #common parameters
         self.results_dir = parameters['common_results_dir']
         self.column_size = parameters['common_column_size']
@@ -23,11 +23,11 @@ class OffNoi(cm.Common):
         self.key_ints = parameters['common_key_ints']
         self.bad_pixels = parameters['common_bad_pixels']
         #offnoi parameters
-        self.bin_file = parameters['dark_bin_file']
-        self.nreps = parameters['dark_nreps']
-        self.nframes = parameters['dark_nframes']
-        self.comm_mode = parameters['dark_comm_mode']
-        self.thres_mips = parameters['dark_thres_mips']
+        self.bin_file = parameters['offnoi_bin_file']
+        self.nreps = parameters['offnoi_nreps']
+        self.nframes = parameters['offnoi_nframes']
+        self.comm_mode = parameters['offnoi_comm_mode']
+        self.thres_mips = parameters['offnoi_thres_mips']
 
         #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -37,8 +37,8 @@ class OffNoi(cm.Common):
         self.step_dir = os.path.join(self.common_dir, 
             f'offnoi_{self.nreps}reps_{self.nframes}frames')
 
-        print(f'Parameters loaded:)')
-        prm.print_contents()
+        print(f'Parameters loaded:')
+        self.prm.print_contents()
 
     def calculate(self):   
         #reate the directory for the data
@@ -47,6 +47,8 @@ class OffNoi(cm.Common):
         #now, create the working directory for the offnoi step
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created working directory for offnoi step: {self.step_dir}')
+        # and save the parameter file there
+        self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = self.get_data()
         #omit bad pixels and mips frames

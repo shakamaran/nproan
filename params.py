@@ -5,7 +5,7 @@ import json
 class Params:
     '''
     To change the parameters, edit them here.
-    Also change the constructor of the class that uses these parameters.
+    Also change the load() function in the respective class.
     '''
     common_params = {
         'common_results_dir': None,         #str
@@ -27,7 +27,8 @@ class Params:
         'filter_nframes': 100,              #int
         'filter_comm_mode': True,           #bool
         'filter_thres_mips': None,          #int
-        'filter_thres_event': 5            #int  
+        'filter_thres_event': 5,            #int
+        'filter_use_fitted_offset': False   #bool
     }
     gain_params = {
         'gain_min_signals': 5               #int
@@ -37,8 +38,8 @@ class Params:
     #file cannot be loaded if these are missing
     required_params = [
         'offnoi_bin_file',
-        'filter_nreps',
-        'offnoi_bin_file',
+        'offnoi_nreps',
+        'filter_bin_file',
         'filter_nreps'
     ]
 
@@ -51,8 +52,15 @@ class Params:
         self.update(json_path)
 
     def update(self, json_path):
-        with open(json_path) as f:
-            self.inp_dict = json.load(f)
+        try:
+            with open(json_path) as f:
+                self.inp_dict = json.load(f)
+        except:
+            print('Error loading the parameter file.')
+            self.save_default_file()
+            print('A default parameter file has been saved to the current directory.')
+            self.param_dict = None
+            return
         self.param_dict = self.default_dict.copy()
         #check consistency of the input dict with the default dict
         for key,value in self.inp_dict.items():
@@ -94,8 +102,11 @@ class Params:
 
     def save_default_file(self, path=None):
         #if no path is provided, save to the current directory
+        print(f'path: {path}')
         if path is None:
             path = os.path.join(os.getcwd(), 'default_params.json')
+        else:
+            path = os.path.join(path, 'default_params.json')
         with open(path, 'w') as f:
             json.dump(self.default_dict, f, indent=4)
     
@@ -105,18 +116,19 @@ class Params:
 
     def get_json_file_name_in_folder(self, folder_path):
         count = 0
-        file =''
-        for file in os.lostdir(folder_path):
+        json_file =''
+        for file in os.listdir(folder_path):
             if fnmatch.fnmatch(file, '*.json'):
-                file = os.path.join(folder_path, file)
+                json_file = os.path.join(folder_path, file)
                 count += 1
         if count == 1:
-            return file
+            return json_file
         else:
             return False
             
     def same_common_params(self, folder_path):
         json_file = self.get_json_file_name_in_folder(folder_path)
+        print(f'json_file: {json_file}')
         if json_file:
             with open(json_file) as f:
                 dict = json.load(f)

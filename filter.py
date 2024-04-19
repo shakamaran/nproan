@@ -13,15 +13,9 @@ class Filter(cm.Common):
         self.load(prm_file, offnoi_dir)
         print('Filter object created')
 
-        self.offnoi_dir = None
-
-        self.offset_raw = None
-        self.offset_fitted = None
-        self.noise_fitted = None
-
     def load(self, prm_file, offnoi_dir):
-        prm = pm.Params(prm_file)
-        parameters = prm.get_dict()
+        self.prm = pm.Params(prm_file)
+        parameters = self.prm.get_dict()
         #common parameters
         self.results_dir = parameters['common_results_dir']
         self.column_size = parameters['common_column_size']
@@ -29,13 +23,13 @@ class Filter(cm.Common):
         self.key_ints = parameters['common_key_ints']
         self.bad_pixels = parameters['common_bad_pixels']
         #filter parameters
-        self.bin_file = parameters['signal_bin_file']
-        self.nreps = parameters['signal_nreps']
-        self.nframes = parameters['signal_nframes']
-        self.comm_mode = parameters['signal_comm_mode']
-        self.thres_mips = parameters['signal_thres_mips']
-        self.thres_event = parameters['signal_thres_event']
-        self.use_fitted_offset = parameters['signal_use_fitted_offset']
+        self.bin_file = parameters['filter_bin_file']
+        self.nreps = parameters['filter_nreps']
+        self.nframes = parameters['filter_nframes']
+        self.comm_mode = parameters['filter_comm_mode']
+        self.thres_mips = parameters['filter_thres_mips']
+        self.thres_event = parameters['filter_thres_event']
+        self.use_fitted_offset = parameters['filter_use_fitted_offset']
 
         #directories
         #set self.common_dir to the parent directory of offnoi_dir
@@ -43,24 +37,34 @@ class Filter(cm.Common):
         self.step_dir = None
         
         print(f'Parameters loaded:')
-        prm.print_contents()
+        self.prm.print_contents()
         
         print('Checking parameters in offnoi directory')
         #look for a json file in the offnoi directory 
-        if (not prm.same_common_params(offnoi_dir)) \
-            or (not prm.same_dark_params(offnoi_dir)):
+        if (not self.prm.same_common_params(offnoi_dir)) \
+            or (not self.prm.same_offnoi_params(offnoi_dir)):
             print('Parameters in offnoi directory do not match')
             return
         try:
             #offset_raw is quite big. deleted after use
             self.offset_raw = cm.get_array_from_file(
                 offnoi_dir, 'offset_raw.npy')
+            print(self.offset_raw.shape)
+            if self.offset_raw is None:
+                print('Error loading offset_raw data\n')
+                return
             self.offset_fitted = cm.get_array_from_file(
                 offnoi_dir, 'fitted_offset.npy'
             )
+            if self.offset_fitted is None:
+                print('Error loading fitted_offset data\n')
+                return
             self.noise_fitted = cm.get_array_from_file(
                 offnoi_dir, 'fitted_noise.npy'
             )
+            if self.noise_fitted is None:
+                print('Error loading fitted_noise data\n')
+                return
             self.offnoi_dir = offnoi_dir
             self.common_dir = os.path.dirname(offnoi_dir)
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -75,6 +79,8 @@ class Filter(cm.Common):
         #create the working directory for the filter step
         os.makedirs(self.step_dir, exist_ok=True)
         print(f'Created directory for filter step: {self.step_dir}')
+        # and save the parameter file there
+        self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = self.get_data()
         #omit bad pixels and mips frames
@@ -83,7 +89,7 @@ class Filter(cm.Common):
         if self.thres_mips is not None:
             self.exclude_mips_frames(data)
         #offset the data and correct for common mode if necessary
-        data -= self.offset_raw[np.newaxis,:,:,:]
+        data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
         gc.collect()
         if self.comm_mode:
