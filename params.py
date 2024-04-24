@@ -12,25 +12,25 @@ class Params:
         'common_column_size': 64,           #int
         'common_row_size': 64,              #int
         'common_key_ints': 3,               #int
-        'common_bad_pixels': None           #list of tuples
+        'common_bad_pixels': []             #list of tuples
     }
     offnoi_params = {
         'offnoi_bin_file': None,              #str
         'offnoi_nreps': None,                 #int
         'offnoi_nframes': 100,                #int
         'offnoi_comm_mode': True,             #bool
-        'offnoi_thres_mips': None,            #int
-        'offnoi_thres_bad_frames': 5          #int
+        'offnoi_thres_mips': 1000,            #float
+        'offnoi_thres_bad_frames': 5          #float
     }
     filter_params = {
         'filter_bin_file': None,            #str
         'filter_nreps': None,               #int
         'filter_nframes': 100,              #int
         'filter_comm_mode': True,           #bool
-        'filter_thres_mips': None,          #int
-        'filter_thres_event': 5,            #int
+        'filter_thres_mips': 1000,          #float
+        'filter_thres_event': 5,            #float
         'filter_use_fitted_offset': False,  #bool
-        'filter_thres_bad_frames': 5        #int
+        'filter_thres_bad_frames': 5        #float
     }
     gain_params = {
         'gain_min_signals': 5               #int
@@ -47,17 +47,17 @@ class Params:
         'offnoi_nreps': int,
         'offnoi_nframes': int,
         'offnoi_comm_mode': bool,
-        'offnoi_thres_mips': int,
-        'offnoi_thres_bad_frames': int,
+        'offnoi_thres_mips': (int, float),
+        'offnoi_thres_bad_frames': (int, float),
 
         'filter_bin_file': str,
         'filter_nreps': int,
         'filter_nframes': int,
         'filter_comm_mode': bool,
-        'filter_thres_mips': int,
-        'filter_thres_event': int,
+        'filter_thres_mips': (int, float),
+        'filter_thres_event': (int, float),
         'filter_use_fitted_offset': bool,
-        'filter_thres_bad_frames': int,
+        'filter_thres_bad_frames': (int, float),
 
         'gain_min_signals': int
     }
@@ -116,11 +116,16 @@ class Params:
                     print(f"{key} is missing. Using default: {self.default_dict[key]}")
 
     def check_types(self):
+        #TODO: modify this to check for tuples of types
         if self.param_dict is None:
             return
         wrong_types = False
         for key,value in self.param_dict.items():
             if value is not None:
+                expected_type = self.params_types[key]
+                if isinstance(expected_type, tuple):
+                    if not any(isinstance(value, t) for t in expected_type):
+                        return False
                 if not isinstance(value, self.params_types[key]):
                     print(f"{key} has the wrong type. Expected {self.params_types[key]}")
                     wrong_types = True
