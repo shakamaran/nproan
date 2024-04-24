@@ -4,7 +4,7 @@ import json
 
 class Params:
     '''
-    To change the parameters, edit them here.
+    To change/add parameters, edit/add them here.
     Also change the load() function in the respective class.
     '''
     common_params = {
@@ -12,7 +12,7 @@ class Params:
         'common_column_size': 64,           #int
         'common_row_size': 64,              #int
         'common_key_ints': 3,               #int
-        'common_bad_pixels': None           #list of tuples (column,row)
+        'common_bad_pixels': None           #list of tuples
     }
     offnoi_params = {
         'offnoi_bin_file': None,              #str
@@ -35,7 +35,33 @@ class Params:
     gain_params = {
         'gain_min_signals': 5               #int
     }
-    
+
+    params_types = {
+        'common_results_dir': str,
+        'common_column_size': int,
+        'common_row_size': int,
+        'common_key_ints': int,
+        'common_bad_pixels': list,          #actually, list of tuples
+
+        'offnoi_bin_file': str,
+        'offnoi_nreps': int,
+        'offnoi_nframes': int,
+        'offnoi_comm_mode': bool,
+        'offnoi_thres_mips': int,
+        'offnoi_thres_bad_frames': int,
+
+        'filter_bin_file': str,
+        'filter_nreps': int,
+        'filter_nframes': int,
+        'filter_comm_mode': bool,
+        'filter_thres_mips': int,
+        'filter_thres_event': int,
+        'filter_use_fitted_offset': bool,
+        'filter_thres_bad_frames': int,
+
+        'gain_min_signals': int
+    }
+
     #required parameters, where there is no default value
     #file cannot be loaded if these are missing
     required_params = [
@@ -44,7 +70,6 @@ class Params:
         'filter_bin_file',
         'filter_nreps'
     ]
-
 
     def __init__(self, json_path=None):
         self.default_dict = {**self.common_params,
@@ -58,6 +83,7 @@ class Params:
         else:
             print('No parameter file provided.')
             print('Run save_default_file() to save a default parameter file.')
+        self.check_types()
 
     def update(self, json_path):
         try:
@@ -77,7 +103,7 @@ class Params:
             else:
                 self.param_dict[key] = value
         #check for missing parameters, using default if not required
-        #if parameter has no default, set out_dict to None
+        #if parameter has no default, set param_dict to None
         for key,value in self.param_dict.items():
             if value is None:
                 if key in self.required_params:
@@ -88,6 +114,18 @@ class Params:
                     break
                 else:
                     print(f"{key} is missing. Using default: {self.default_dict[key]}")
+
+    def check_types(self):
+        if self.param_dict is None:
+            return
+        wrong_types = False
+        for key,value in self.param_dict.items():
+            if value is not None:
+                if not isinstance(value, self.params_types[key]):
+                    print(f"{key} has the wrong type. Expected {self.params_types[key]}")
+                    wrong_types = True
+        if wrong_types:
+            print('Please provide a correct parameter file.')
                 
     def get_dict(self):
         return self.param_dict
@@ -101,11 +139,14 @@ class Params:
         print('--common parameters:')
         for key in self.common_params.keys():
             print(key)
-        print('--signal parameters:')
-        for key in self.signal_params.keys():
+        print('--offnoi parameters:')
+        for key in self.offnoi_params.keys():
             print(key)
-        print('--dark parameters:')
-        for key in self.dark_params.keys():
+        print('--filter parameters:')
+        for key in self.filter_params.keys():
+            print(key)
+        print('--gain parameters:')
+        for key in self.gain_params.keys():
             print(key)
 
     def save_default_file(self, path=None):
