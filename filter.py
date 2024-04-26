@@ -5,8 +5,10 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-import common as cm
-import params as pm
+#import common as cm
+#import params as pm
+from . import common as cm
+from . import params as pm
 
 class Filter(cm.Common):
     def __init__(self, prm_file, offnoi_dir):
@@ -57,14 +59,14 @@ class Filter(cm.Common):
                 print('Error loading offset_raw data\n')
                 return
             self.offset_fitted = cm.get_array_from_file(
-                offnoi_dir, 'fitted_offset.npy'
-            )
+                offnoi_dir, 'offnoi_fit.npy'
+            )[1]
             if self.offset_fitted is None:
                 print('Error loading fitted_offset data\n')
                 return
             self.noise_fitted = cm.get_array_from_file(
-                offnoi_dir, 'fitted_noise.npy'
-            )
+                offnoi_dir, 'offnoi_fit.npy'
+            )[2]
             if self.noise_fitted is None:
                 print('Error loading fitted_noise data\n')
                 return
@@ -74,9 +76,9 @@ class Filter(cm.Common):
             self.step_dir = os.path.join(
                 self.common_dir, timestamp + f'_filter_{self.thres_event}_threshold'
             )
+            print(self.step_dir)
         except:
-            print('Error loading offnoi data\n')
-            return
+            raise ValueError('Error loading offnoi data\n')
 
     def calculate(self):
         #create the working directory for the filter step
@@ -95,8 +97,6 @@ class Filter(cm.Common):
             data = self.exclude_bad_frames(data)
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
-        if self.thres_bad_slopes != 0:
-            data = self.exclude_bad_slopes(data)
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
@@ -116,6 +116,10 @@ class Filter(cm.Common):
                 self.get_sum_of_event_signals(event_map))
         np.save(os.path.join(self.step_dir, 'sum_of_event_counts.npy'),
                 self.get_sum_of_event_counts(event_map))
+        if self.thres_bad_slopes != 0:
+            bad_slopes_pos, bad_slopes_data = self.get_bad_slopes(data)
+            np.save(os.path.join(self.step_dir, 'bad_slopes_pos.npy'), bad_slopes_pos)
+            np.save(os.path.join(self.step_dir, 'bad_slopes_data.npy'), bad_slopes_data)
                 
     def calc_event_map(self, avg_over_nreps):
         print('Finding events')

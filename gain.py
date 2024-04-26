@@ -5,8 +5,11 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-import common as cm
-import params as pm
+#import common as cm
+#import params as pm
+
+from . import common as cm
+from . import params as pm
 
 class Gain(cm.Common):
     def __init__(self, prm_file, filter_dir):

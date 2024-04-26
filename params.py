@@ -88,10 +88,10 @@ class Params:
         self.param_dict = None
         if json_path is not None:
             self.update(json_path)
+            self.check_types()
         else:
             print('No parameter file provided.')
             print('Run save_default_file() to save a default parameter file.')
-        self.check_types()
 
     def update(self, json_path):
         try:

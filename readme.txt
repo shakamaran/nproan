@@ -1,15 +1,22 @@
-
 TODO:
-- add more documentation
-- write wiki
-- write functions for fitting histograms using minuit
+
+- test bad slopes and nreps eval
+
+- start analysing some files in notebooks and add functions to common.py
+    check the fitting while youre at it
+
+- remove output of pictures
+- add documentation to functions
 - implement logging to file and exception stuff
-- implement nreps_eval (parameter for offnoi and filter):
-    [0,10,2] should evaluate nreps [0,2,4,6,8,10] -> [min,max,step]
-- implement bad slopes (for offnoi and filter)
-    and provide output for it
+
+- write wiki and an example file for Analysis
+- write functions for fitting histograms using minuit (?)
+
+
 
 My current philosophy for doing stuff:
+- np roan should calculate stuff for now, functions for drawing/saving can
+    be put in common.py
 - Parameters from the parameter file are stored in the class variables
 - Parameters can be boolean or int. for thresholds 0 means no calculation is performed.
 - parameter file is in JSON format
@@ -29,8 +36,8 @@ My current philosophy for doing stuff:
     provided along with the parameters
     consistency of the parameters (from last steps) will be checked
 
-- functions that return values should be named get_something(), this is 
-    preferred
+- functions that return values should be named get_something(), its preferred To
+    return a value. 
 - data should not be stored in the class
 - data that is loaded in the filter or gain step is stored in a class variable
     and deleted after use

@@ -124,9 +124,9 @@ class Common:
             return None
         if len(self.nreps_eval) != 3:
             raise ValueError('nreps_eval must be a list of 3 integers')
-        lower = input[0]
-        upper = input[1]
-        step = input[2]
+        lower = self.nreps_eval[0]
+        upper = self.nreps_eval[1]
+        step = self.nreps_eval[2]
         if upper == -1:
             upper = data.shape[2]
         if lower < 0:
@@ -176,26 +176,35 @@ class Common:
         bad_pixel_mask = (avg_per_frame < lower_bound) | (avg_per_frame > upper_bound)
         excluded_frames = np.sum(bad_pixel_mask)
         print(f'Excluded {excluded_frames} frames')
-        print(f'mean: {fit[1]}, sigma: {fit[2]} lower bound: {lower_bound}, upper bound: {upper_bound}')
         title = f'Average signal per frame. Excluded {excluded_frames} frames'
         draw_hist_and_gauss_fit(avg_per_frame, 100, fit[0], fit[1], fit[2],
-                                title, 
+                                title, 'bad_frames', 
                                 save_to = self.step_dir)
         return data[~bad_pixel_mask]
     
-    def exclude_bad_slopes(self, data):
+    def get_bad_slopes(self, data):
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
-        print('Excluding bad slopes')
-        result = np.apply_along_axis(linear_fit, axis = 2, arr = data)
-        fit = fit_gauss_to_hist(result[:, :, 0, :].flatten())
+        print('Calculating bad slopes')
+        slopes = np.apply_along_axis(linear_fit, axis = 2, arr = data)[:, :, 0, :]
+        fit = fit_gauss_to_hist(slopes.flatten())
+        draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
+                                'Slopes of the data', 'bad_slopes',
+                                save_to = self.step_dir)
         lower_bound = fit[1] - self.thres_bad_frames*fit[2]
         upper_bound = fit[1] + self.thres_bad_frames*fit[2]
-        bad_frame_mask = (result[:, :, 0, :] < lower_bound) | (result[:, :, 0, :] > upper_bound)
-        print(bad_frame_mask.shape)
+        print(f'Lower bound: {lower_bound}, Upper bound: {upper_bound}')
+        bad_slopes_mask = (slopes < lower_bound) | (slopes > upper_bound)
+        frame, row, column = np.where(bad_slopes_mask)
+        bad_slopes_pos = np.array([frame, column, row]).T
+        #get indices of frames with bad slopes
+        bad_slopes_data = data[frame, row, :, column]
+        print(bad_slopes_data.shape)
+        print(bad_slopes_pos.shape)
+        draw_hist(frame, save=True, bins=100)
+        return bad_slopes_pos, bad_slopes_data
 
-    
     def set_bad_pixels_to_nan(self, data):
         '''Sets all ignored Pixels in data to NaN.
         '''
@@ -353,7 +362,7 @@ def draw_graph(data, save=False, **kwargs):
         plt.savefig('graph.png')
     plt.show()
 
-def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, save_to=None):
+def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name, save_to=None):
     
     hist, hist_bins = np.histogram(data, bins, density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
@@ -364,7 +373,7 @@ def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, save_to=N
     plt.ylabel('Frequency')
     plt.legend()
     if save_to is not None:
-        plt.savefig(save_to + '\\bad_frames.png'), 
+        plt.savefig(save_to + file_name + '.png')
     else:
         plt.show()
 

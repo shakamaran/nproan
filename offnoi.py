@@ -5,8 +5,8 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import curve_fit
 
-import common as cm
-import params as pm
+from . import common as cm
+from . import params as pm
 
 class OffNoi(cm.Common):
     def __init__(self, prm_file):
@@ -63,8 +63,6 @@ class OffNoi(cm.Common):
             data = self.exclude_bad_frames(data)
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
-        if self.thres_bad_slopes != 0:
-            data = self.exclude_bad_slopes(data)
         #calculate offset_raw on the raw data and save it
         avg_over_frames = self.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),
@@ -88,3 +86,7 @@ class OffNoi(cm.Common):
         fit_curve_fit = cm.get_fit_gauss(avg_over_nreps)
         np.save(os.path.join(self.step_dir, 'offnoi_fit_unbinned.npy'), fit_unbinned)
         np.save(os.path.join(self.step_dir, 'offnoi_fit.npy'), fit_curve_fit)
+        if self.thres_bad_slopes != 0:
+            bad_slopes_pos, bad_slopes_data = self.get_bad_slopes(data)
+            np.save(os.path.join(self.step_dir, 'bad_slopes_pos.npy'), bad_slopes_pos)
+            np.save(os.path.join(self.step_dir, 'bad_slopes_data.npy'), bad_slopes_data)
