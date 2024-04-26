@@ -183,6 +183,19 @@ class Common:
                                 save_to = self.step_dir)
         return data[~bad_pixel_mask]
     
+    def exclude_bad_slopes(self, data):
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        print('Excluding bad slopes')
+        result = np.apply_along_axis(linear_fit, axis = 2, arr = data)
+        fit = fit_gauss_to_hist(result[:, :, 0, :].flatten())
+        lower_bound = fit[1] - self.thres_bad_frames*fit[2]
+        upper_bound = fit[1] + self.thres_bad_frames*fit[2]
+        bad_frame_mask = (result[:, :, 0, :] < lower_bound) | (result[:, :, 0, :] > upper_bound)
+        print(bad_frame_mask.shape)
+
+    
     def set_bad_pixels_to_nan(self, data):
         '''Sets all ignored Pixels in data to NaN.
         '''
@@ -364,3 +377,8 @@ def gaussian(x, a1, mu1, sigma1):
 def two_gaussians(x, a1, mu1, sigma1, a2, mu2, sigma2):
     return (a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2) +
             a2 * np.exp(-(x - mu2)**2 / (2 * sigma2**2))))
+
+def linear_fit(data):
+    x = np.arange(data.size)
+    m, b = np.polyfit(x, data, 1)
+    return np.array([m, b])

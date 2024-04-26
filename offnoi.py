@@ -63,6 +63,8 @@ class OffNoi(cm.Common):
             data = self.exclude_bad_frames(data)
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
+        if self.thres_bad_slopes != 0:
+            data = self.exclude_bad_slopes(data)
         #calculate offset_raw on the raw data and save it
         avg_over_frames = self.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),

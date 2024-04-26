@@ -95,6 +95,8 @@ class Filter(cm.Common):
             data = self.exclude_bad_frames(data)
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
+        if self.thres_bad_slopes != 0:
+            data = self.exclude_bad_slopes(data)
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
