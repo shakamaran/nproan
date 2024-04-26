@@ -26,11 +26,13 @@ class Filter(cm.Common):
         self.bin_file = parameters['filter_bin_file']
         self.nreps = parameters['filter_nreps']
         self.nframes = parameters['filter_nframes']
+        self.nreps_eval = parameters['filter_nreps_eval']
         self.comm_mode = parameters['filter_comm_mode']
         self.thres_mips = parameters['filter_thres_mips']
         self.thres_event = parameters['filter_thres_event']
         self.use_fitted_offset = parameters['filter_use_fitted_offset']
         self.thres_bad_frames = parameters['filter_thres_bad_frames']
+        self.thres_bad_slopes = parameters['filter_thres_bad_slopes']
 
         #directories
         #set self.common_dir to the parent directory of offnoi_dir
@@ -84,12 +86,14 @@ class Filter(cm.Common):
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = self.get_data()
+        if self.nreps_eval:
+            data = self.exclude_nreps_eval(data)
         #omit bad pixels and mips frames
-        if self.bad_pixels is not None:
+        if self.bad_pixels:
             data = self.set_bad_pixels_to_nan(data)
-        if self.thres_bad_frames is not None:
+        if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
-        if self.thres_mips is not None:
+        if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]

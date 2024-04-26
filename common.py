@@ -115,6 +115,34 @@ class Common:
             return None
         return np.nanmean(data, axis = (0,2))
 
+    def exclude_nreps_eval(self, data):
+        '''Excludes nreps from data that are not in the list nreps_eval.
+        Returns the data without the excluded nreps'''
+
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
+        if len(self.nreps_eval) != 3:
+            raise ValueError('nreps_eval must be a list of 3 integers')
+        lower = input[0]
+        upper = input[1]
+        step = input[2]
+        if upper == -1:
+            upper = data.shape[2]
+        if lower < 0:
+            raise ValueError('Lower limit must be greater or equal 0')
+        if upper > data.shape[2]:
+            raise ValueError('Upper limit is greater than the number of nreps')
+        if upper < lower:
+            raise ValueError('Upper limit must be greater than lower limit')
+
+        print('Excluding nreps')
+        mask = np.zeros(data.shape[2])
+        mask[lower:upper:step] = 1
+        mask = mask.astype(bool)
+        print(f'Excluded {np.sum(~mask)} nreps')
+        return data[:,:,mask,:]
+
     def exclude_mips_frames(self, data):
         '''Calculates the median of each frame and excludes frames that are
         above or below the median by a certain threshold.

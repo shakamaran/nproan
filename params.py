@@ -18,7 +18,7 @@ class Params:
         'offnoi_bin_file': "",              #str
         'offnoi_nreps': 200,                 #int
         'offnoi_nframes': 100,                #int
-        'offnoi_nreps_eval': [],             #list of ints
+        'offnoi_nreps_eval': [0,-1,1],        #list of ints
         'offnoi_comm_mode': True,             #bool
         'offnoi_thres_mips': 1000,            #float
         'offnoi_thres_bad_frames': 5,          #float
@@ -28,7 +28,7 @@ class Params:
         'filter_bin_file': "",            #str
         'filter_nreps': 200,               #int
         'filter_nframes': 100,              #int
-        'filter_nreps_eval': [],           #list of ints
+        'filter_nreps_eval': [0,-1,1],           #list of ints
         'filter_comm_mode': True,           #bool
         'filter_thres_mips': 1000,          #float
         'filter_thres_event': 5,            #float

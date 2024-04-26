@@ -26,9 +26,11 @@ class OffNoi(cm.Common):
         self.bin_file = parameters['offnoi_bin_file']
         self.nreps = parameters['offnoi_nreps']
         self.nframes = parameters['offnoi_nframes']
+        self.nreps_eval = parameters['offnoi_nreps_eval']
         self.comm_mode = parameters['offnoi_comm_mode']
         self.thres_mips = parameters['offnoi_thres_mips']
         self.thres_bad_frames = parameters['offnoi_thres_bad_frames']
+        self.thres_bad_slopes = parameters['offnoi_thres_bad_slopes']
 
         #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -53,11 +55,13 @@ class OffNoi(cm.Common):
 
         data = self.get_data()
         #omit bad pixels and mips frames
-        if self.bad_pixels is not None:
+        if self.nreps_eval:
+            data = self.exclude_nreps_eval(data)
+        if self.bad_pixels:
             data = self.set_bad_pixels_to_nan(data)
-        if self.thres_bad_frames is not None:
+        if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
-        if self.thres_mips is not None:
+        if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
         #calculate offset_raw on the raw data and save it
         avg_over_frames = self.get_avg_over_frames(data)
