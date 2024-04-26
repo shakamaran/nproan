@@ -1,5 +1,7 @@
 TODO:
 
+-create a class, that simply takes a parameter file and calculates everything
+
 - test bad slopes and nreps eval
 
 - start analysing some files in notebooks and add functions to common.py

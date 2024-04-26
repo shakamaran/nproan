@@ -200,9 +200,6 @@ class Common:
         bad_slopes_pos = np.array([frame, column, row]).T
         #get indices of frames with bad slopes
         bad_slopes_data = data[frame, row, :, column]
-        print(bad_slopes_data.shape)
-        print(bad_slopes_pos.shape)
-        draw_hist(frame, save=True, bins=100)
         return bad_slopes_pos, bad_slopes_data
 
     def set_bad_pixels_to_nan(self, data):
