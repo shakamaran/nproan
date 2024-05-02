@@ -39,10 +39,10 @@ class Common:
                                    count = chunk_size, offset = offset)
             #check if file is at its end
             if inp_data.size == 0:
-                print(f'Loaded {frames_here} of {self.nframes} \
+                print(f'\nLoaded {frames_here} of {self.nframes} \
                       requested frames, end of file reached.')
                 print('Run calc()\n~~~~~')
-                return output
+                return output[:frames_here].copy()
             print(f'\rReading chunk {count+1} from bin file, \
                   {frames_here} frames loaded', end='')
             #reshape the array into rows -> (#ofRows,67)
@@ -170,9 +170,10 @@ class Common:
             return None
         print('Excluding bad frames')
         avg_per_frame = np.nanmean(data, axis = (1,2,3))
+        np.save(os.path.join(self.step_dir, 'avg_per_frame.npy'), avg_per_frame)
         fit = fit_gauss_to_hist(avg_per_frame)
-        lower_bound = fit[1] - self.thres_bad_frames*fit[2]
-        upper_bound = fit[1] + self.thres_bad_frames*fit[2]
+        lower_bound = fit[1] - self.thres_bad_frames*np.abs(fit[2])
+        upper_bound = fit[1] + self.thres_bad_frames*np.abs(fit[2])
         bad_pixel_mask = (avg_per_frame < lower_bound) | (avg_per_frame > upper_bound)
         excluded_frames = np.sum(bad_pixel_mask)
         print(f'Excluded {excluded_frames} frames')
