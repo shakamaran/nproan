@@ -39,8 +39,7 @@ class Common:
                                    count = chunk_size, offset = offset)
             #check if file is at its end
             if inp_data.size == 0:
-                print(f'\nLoaded {frames_here} of {self.nframes} \
-                      requested frames, end of file reached.')
+                print(f'\nLoaded {frames_here} of {self.nframes} requested frames, end of file reached.')
                 print('Run calc()\n~~~~~')
                 return output[:frames_here].copy()
             print(f'\rReading chunk {count+1} from bin file, \
