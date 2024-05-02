@@ -195,7 +195,7 @@ class Common:
         frame, row, column = np.where(bad_slopes_mask)
         bad_slopes_pos = np.array([frame, column, row]).T
         #get indices of frames with bad slopes
-        bad_slopes_data = data[frame, row, :, column]
+        bad_slopes_data = data[frame.T, row.T, :, column.T]
         print(f'Found {len(bad_slopes_pos)} bad Slopes')
         return bad_slopes_pos, bad_slopes_data
 
