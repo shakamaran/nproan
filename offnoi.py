@@ -57,12 +57,15 @@ class OffNoi(cm.Common):
         #omit bad pixels and mips frames
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)
+            print(f'Shape of data: {data.shape}')
         if self.bad_pixels:
             data = self.set_bad_pixels_to_nan(data)
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
+            print(f'Shape of data: {data.shape}')
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
+            print(f'Shape of data: {data.shape}')
         #calculate offset_raw on the raw data and save it
         avg_over_frames = self.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),

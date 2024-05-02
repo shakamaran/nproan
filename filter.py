@@ -90,13 +90,16 @@ class Filter(cm.Common):
         data = self.get_data()
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)
+            print(f'Shape of data: {data.shape}')
         #omit bad pixels and mips frames
         if self.bad_pixels:
             data = self.set_bad_pixels_to_nan(data)
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
+            print(f'Shape of data: {data.shape}')
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
+            print(f'Shape of data: {data.shape}')
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
