@@ -24,6 +24,7 @@ class Common:
         It is read one chunk at a time, to save memory.
         The data is reshaped into the dimensions 
         (nframes, column_size, nreps, row_size)'''
+        polarity = -1
         frames_per_chunk = 20
         raw_row_size = self.column_size + self.key_ints
         raw_frame_size = self.column_size * raw_row_size * self.nreps
@@ -41,7 +42,7 @@ class Common:
             if inp_data.size == 0:
                 print(f'\nLoaded {frames_here} of {self.nframes} requested frames, end of file reached.')
                 print('Run calc()\n~~~~~')
-                return output[:frames_here].copy()
+                return polarity*output[:frames_here].copy()
             print(f'\rReading chunk {count+1} from bin file, \
                   {frames_here} frames loaded', end='')
             #reshape the array into rows -> (#ofRows,67)
@@ -82,8 +83,7 @@ class Common:
                 frames_here += frames_inc
                 print(f'\nLoaded {self.nframes} frames')
                 print('Run calculate()\n~~~~~')
-                return output
-            #here is the polarity from the c++ code
+                return polarity*output
             output[frames_here:frames_here+frames_inc] = \
             inp_data.reshape(-1, self.column_size, 
                               self.nreps, self.row_size).astype(float)
@@ -197,6 +197,8 @@ class Common:
         #get indices of frames with bad slopes
         bad_slopes_data = data[frame.T, row.T, :, column.T]
         print(f'Found {len(bad_slopes_pos)} bad Slopes')
+        print(f'Shape of bad slopes data: {bad_slopes_data.shape}')
+        print(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
         return bad_slopes_pos, bad_slopes_data
 
     def set_bad_pixels_to_nan(self, data):
@@ -287,7 +289,7 @@ def fit_gauss_to_hist(data_to_fit):
         params, covar = curve_fit(gaussian, bin_centers, hist, p0=guess)
         return np.array([params[0],
                          params[1], 
-                         params[2],
+                         np.abs(params[2]),
                          np.sqrt(np.diag(covar))[0],
                          np.sqrt(np.diag(covar))[1], 
                          np.sqrt(np.diag(covar))[2]])
@@ -312,7 +314,7 @@ def unbinned_fit_gauss_to_hist(data_to_fit):
             return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
         return np.array([m.values['a1'],
                          m.values['mu1'],
-                         m.values['sigma1'],
+                         np.abs(m.values['sigma1']),
                          m.errors['a1'],
                          m.errors['mu1'],
                          m.errors['sigma1']])
