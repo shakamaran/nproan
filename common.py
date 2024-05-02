@@ -190,17 +190,14 @@ class Common:
         print('Calculating bad slopes')
         slopes = np.apply_along_axis(linear_fit, axis = 2, arr = data)[:, :, 0, :]
         fit = fit_gauss_to_hist(slopes.flatten())
-        draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
-                                'Slopes of the data', 'bad_slopes',
-                                save_to = self.step_dir)
-        lower_bound = fit[1] - self.thres_bad_frames*fit[2]
-        upper_bound = fit[1] + self.thres_bad_frames*fit[2]
-        print(f'Lower bound: {lower_bound}, Upper bound: {upper_bound}')
+        lower_bound = fit[1] - self.thres_bad_frames*np.abs(fit[2])
+        upper_bound = fit[1] + self.thres_bad_frames*np.abs(fit[2])
         bad_slopes_mask = (slopes < lower_bound) | (slopes > upper_bound)
         frame, row, column = np.where(bad_slopes_mask)
         bad_slopes_pos = np.array([frame, column, row]).T
         #get indices of frames with bad slopes
         bad_slopes_data = data[frame, row, :, column]
+        print(f'Found {len(bad_slopes_pos)} bad Slopes')
         return bad_slopes_pos, bad_slopes_data
 
     def set_bad_pixels_to_nan(self, data):
@@ -321,18 +318,19 @@ def unbinned_fit_gauss_to_hist(data_to_fit):
                          m.errors['mu1'],
                          m.errors['sigma1']])
 
-def draw_hist(data, save=False, **kwargs):
+def draw_hist(data,file_name="histogram", save_to=None, **kwargs):
     '''
     Draw a histogram of the data
     if save is True, the histogram is saved as a .png file
     kwargs are passed to plt.hist
     '''
     plt.hist(data.ravel(), **kwargs)
-    if save:
-        plt.savefig('histogram.png')
-    plt.show()
+    if save_to is not None:
+        plt.savefig(save_to + file_name + '.png')
+    else:
+        plt.show()
 
-def draw_heatmap(data, save=False, **kwargs):
+def draw_heatmap(data,file_name="heatmap", save_to=None, **kwargs):
     '''
     Draw a heatmap of the data
     if save is True, the heatmap is saved as a .png file
@@ -345,20 +343,22 @@ def draw_heatmap(data, save=False, **kwargs):
     # Define default values
     cmap = kwargs.get('cmap', 'coolwarm')
     sns.heatmap(data, cmap=cmap, **kwargs)
-    if save:
-        plt.savefig('heatmap.png')
-    plt.show()
+    if save_to is not None:
+        plt.savefig(save_to + file_name + '.png')
+    else:
+        plt.show()
 
-def draw_graph(data, save=False, **kwargs):
+def draw_graph(data,file_name="graph", save_to=None, **kwargs):
     '''
     Draw a graph of the data
     if save is True, the graph is saved as a .png file
     kwargs are passed to plt.plot
     '''
     plt.plot(data.ravel(), **kwargs)
-    if save:
-        plt.savefig('graph.png')
-    plt.show()
+    if save_to is not None:
+        plt.savefig(save_to + file_name + '.png')
+    else:
+        plt.show()
 
 def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name, save_to=None):
     
