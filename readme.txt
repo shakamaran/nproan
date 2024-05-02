@@ -1,20 +1,20 @@
 TODO:
-
--create a class, that simply takes a parameter file and calculates everything
-
-- test bad slopes and nreps eval
-
+Prio:
+- create a class, that simply takes a parameter file and calculates everything
+    with a slurm job.
 - start analysing some files in notebooks and add functions to common.py
-    check the fitting while youre at it
+    check the fitting while youre at it (implement minuit)
+- add infos to plots
 
-- remove output of pictures
-- add documentation to functions
-- implement logging to file and exception stuff
+-upload whole package to github
+-check if nproanPackage needs to be uploaded
+-install on conda in group folder
+-test it with collagues
+-exceptions und logging
+-wiki updaten
 
-- write wiki and an example file for Analysis
-- write functions for fitting histograms using minuit (?)
-
-
+keine Prio:
+-Zeitschätzung?
 
 My current philosophy for doing stuff:
 - np roan should calculate stuff for now, functions for drawing/saving can
