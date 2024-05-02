@@ -92,6 +92,7 @@ class Params:
         else:
             print('No parameter file provided.')
             print('Run save_default_file() to save a default parameter file.')
+            print('Add all required parameters to default and start new.')
 
     def update(self, json_path):
         try:
@@ -152,6 +153,9 @@ class Params:
             print(key)
         print('--gain parameters:')
         for key in self.gain_params.keys():
+            print(key)
+        print('required parameters:')
+        for key in self.required_params:
             print(key)
 
     def save_default_file(self, path=None):
