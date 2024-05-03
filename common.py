@@ -199,6 +199,10 @@ class Common:
         print(f'Found {len(bad_slopes_pos)} bad Slopes')
         print(f'Shape of bad slopes data: {bad_slopes_data.shape}')
         print(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
+        title = f'Slope Values for each Pixel and Frame. {len(bad_slopes_pos)} bad slopes found.'
+        draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
+                                title, 'bad_slopes', 
+                                save_to = self.step_dir)
         return bad_slopes_pos, bad_slopes_data
 
     def set_bad_pixels_to_nan(self, data):
@@ -325,6 +329,7 @@ def draw_hist(data,file_name="histogram", save_to=None, **kwargs):
     if save is True, the histogram is saved as a .png file
     kwargs are passed to plt.hist
     '''
+    plt.clf()
     plt.hist(data.ravel(), **kwargs)
     if save_to is not None:
         plt.savefig(save_to + file_name + '.png')
@@ -341,6 +346,7 @@ def draw_heatmap(data,file_name="heatmap", save_to=None, **kwargs):
     if data.ndim !=2:
         print('Data is not 2D')
         return
+    plt.clf()
     # Define default values
     cmap = kwargs.get('cmap', 'coolwarm')
     sns.heatmap(data, cmap=cmap, **kwargs)
@@ -355,6 +361,7 @@ def draw_graph(data,file_name="graph", save_to=None, **kwargs):
     if save is True, the graph is saved as a .png file
     kwargs are passed to plt.plot
     '''
+    plt.clf()
     plt.plot(data.ravel(), **kwargs)
     if save_to is not None:
         plt.savefig(save_to + file_name + '.png')
@@ -362,7 +369,7 @@ def draw_graph(data,file_name="graph", save_to=None, **kwargs):
         plt.show()
 
 def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name, save_to=None):
-    
+    plt.clf()
     hist, hist_bins = np.histogram(data, bins, density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
     plt.hist(data, bins=hist_bins, density=True, alpha=0.5, label='Histogram')
@@ -372,7 +379,7 @@ def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name
     plt.ylabel('Frequency')
     plt.legend()
     if save_to is not None:
-        plt.savefig(save_to + file_name + '.png')
+        plt.savefig(save_to + '/' + file_name + '.png')
     else:
         plt.show()
 
@@ -390,3 +397,21 @@ def linear_fit(data):
     x = np.arange(data.size)
     m, b = np.polyfit(x, data, 1)
     return np.array([m, b])
+
+def set_pixels_to_nan(data, indices):
+    '''
+    gets a list of pixel/frame positions: [frame,row,column]
+    copies the data array, sets all pixels to nan
+    and returns the new array
+    '''
+    if np.ndim(data) != 3:
+        print('Data has wrong dimensions')
+        return None
+    if np.ndim(indices) != 3:
+        print('Pixel positions have wrong dimensions')
+        return None
+    data_copy = data.copy()
+    #TODO: Vectorize this
+    for entry in indices:
+        data_copy[entry[0], entry[1], entry[2]] = np.nan
+    return data_copy

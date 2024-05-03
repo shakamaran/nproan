@@ -1,5 +1,6 @@
 TODO:
 Prio:
+- bad slopes should be ignored in the fitting in the offnoi step
 - create a class, that simply takes a parameter file and calculates everything
     with a slurm job.
 - start analysing some files in notebooks and add functions to common.py
