@@ -20,10 +20,16 @@ class Common:
     eg: self.nframes must have the same name in every Child class
     '''
     def get_data(self):
-        '''reads the binary file and returns the data as a numpy array.
-        It is read one chunk at a time, to save memory.
-        The data is reshaped into the dimensions 
-        (nframes, column_size, nreps, row_size)'''
+        '''
+        Reads the binary file (in chunks) and returns the data as a numpy array 
+        in shape (nframes, column_size, nreps, row_size).
+
+        Args:
+            None; uses class variables, that are set through the parameter file
+        
+        Returns:
+            np.array in shape (nframes, column_size, nreps, row_size)
+        '''
         polarity = -1
         frames_per_chunk = 20
         raw_row_size = self.column_size + self.key_ints
@@ -89,34 +95,63 @@ class Common:
                               self.nreps, self.row_size).astype(float)
             frames_here += frames_inc
             gc.collect()
-
     @staticmethod
     def get_avg_over_frames(data):
-    #TODO: move this to outside of class
+        '''
+        Calculates the average over the frames in data.
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+        
+        Returns:
+            np.array in shape (column_size, nreps, row_size)
+        '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = 0)
-
     @staticmethod
     def get_avg_over_nreps(data):
-    #TODO: move this to outside of class
+        '''
+        Calculates the average over the nreps in data.
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+
+        Returns:
+            np.array in shape (nframes, column_size, row_size)
+        '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = 2)
-
     @staticmethod
     def get_avg_over_frames_and_nreps(data):
-    #TODO: move this to outside of class
+        '''
+        Calculates the average over the frames and nreps in data.
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+
+        Returns:
+            np.array in shape (column_size, row_size)
+        '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = (0,2))
 
     def exclude_nreps_eval(self, data):
-        '''Excludes nreps from data that are not in the list nreps_eval.
-        Returns the data without the excluded nreps'''
+        '''
+        Deletes nreps from data that are not in the list nreps_eval.
+        nreps_eval is a list of 3 integers: [lower, upper, step]
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+
+        Returns:
+            np.array in shape (nframes, column_size, nreps-X, row_size)
+        '''
 
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
@@ -143,9 +178,16 @@ class Common:
         return data[:,:,mask,:]
 
     def exclude_mips_frames(self, data):
-        '''Calculates the median of each frame and excludes frames that are
+        '''
+        Calculates the median of each frame and deletes frames that are
         above or below the median by a certain threshold.
-        returns the data without the bad frames'''
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+
+        Returns:
+            np.array in shape (nframes-X, column_size, nreps, row_size)
+        '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
@@ -160,10 +202,17 @@ class Common:
         return data[~mask]
 
     def exclude_bad_frames(self, data):
-        '''Calculates the average of each frame and excludes frames that are
+        '''
+        Calculates the average of each frame and excludes frames that are
         above or below the fitted mean by a certain threshold.
         It saves a .png file in the step directory.
-        returns the data without the bad frames'''
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+
+        Returns:
+            np.array in shape (nframes-X, column_size, nreps, row_size)
+        '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
@@ -183,6 +232,18 @@ class Common:
         return data[~bad_pixel_mask]
     
     def get_bad_slopes(self, data):
+        '''
+        Calculates the slope over nreps for every pixel and frame.
+        It then fits a gaussian to the histogram of the slopes, and determines
+        the bad slopes by a threshold.
+        
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+            
+        Returns:
+            np.array in shape (n, 3) with the position [frame, row, column]
+            np.array in shape (n, nreps) with the data of the bad slopes
+        '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
@@ -205,8 +266,16 @@ class Common:
                                 save_to = self.step_dir)
         return bad_slopes_pos, bad_slopes_data
 
-    def set_bad_pixels_to_nan(self, data):
-        '''Sets all ignored Pixels in data to NaN.
+    def set_bad_pixellist_to_nan(self, data):
+        '''
+        Sets all ignored Pixels in data to NaN. List of pixels is from the
+        parameter file. [(col,row), (col,row), ...]
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+        
+        Returns:
+            np.array in shape (nframes, column_size, nreps, row_size)
         '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
@@ -223,8 +292,13 @@ class Common:
 
     def get_common_corrected_data(self, data):
         '''
-        Performs the common mode correction.
-        Calculates the median of euch row in data, and substracts it from the row.
+        Calculates the median of euch row in data, and substracts it from 
+        the row.
+
+        Args:
+            np.array in shape (nframes, column_size, nreps, row_size)
+        Returns:
+            np.array in shape (nframes, column_size, nreps, row_size)
         '''
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
@@ -247,7 +321,8 @@ class Common:
         return self.step_dir
     
 def get_unbinned_fit_gauss(data):
-    ''' fits a gaussian to a histogram of data_to_fit
+    '''
+    fits a gaussian to a histogram of data
     using the unbinned method in minuit
     returns a np.array in shape (6, rows, columns)
     index 0: amplitude

@@ -59,7 +59,7 @@ class OffNoi(cm.Common):
             data = self.exclude_nreps_eval(data)
             print(f'Shape of data: {data.shape}')
         if self.bad_pixels:
-            data = self.set_bad_pixels_to_nan(data)
+            data = self.set_bad_pixellist_to_nan(data)
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
             print(f'Shape of data: {data.shape}')

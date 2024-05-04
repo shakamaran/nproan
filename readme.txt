@@ -17,6 +17,12 @@ Prio:
 keine Prio:
 -Zeitschätzung?
 
+COL vs ROW Convention:
+
+In ROOT its (col, row), so externally i want to preserve this.
+Althought data is represented as (frame,row,nreps,col)
+
+
 My current philosophy for doing stuff:
 - np roan should calculate stuff for now, functions for drawing/saving can
     be put in common.py

@@ -93,7 +93,7 @@ class Filter(cm.Common):
             print(f'Shape of data: {data.shape}')
         #omit bad pixels and mips frames
         if self.bad_pixels:
-            data = self.set_bad_pixels_to_nan(data)
+            data = self.set_bad_pixellist_to_nan(data)
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
             print(f'Shape of data: {data.shape}')
