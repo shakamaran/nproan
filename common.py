@@ -546,3 +546,18 @@ def set_pixels_to_nan(data, indices):
     for entry in indices:
         data_copy[entry[0], entry[1], entry[2]] = np.nan
     return data_copy
+
+def get_rolling_average(data, window_size):
+    '''
+    Calculates a rolling average over window_size
+    
+    Args:
+        1D np.array
+        window_size: int
+    
+    Returns:
+        1D np.array
+    '''
+    weights = np.repeat(1.0, window_size) / window_size
+    # Use 'valid' mode to ensure that output has the same length as input
+    return np.convolve(data, weights, mode='valid')
