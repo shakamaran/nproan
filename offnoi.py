@@ -94,6 +94,7 @@ class OffNoi(cm.Common):
         np.save(os.path.join(self.step_dir, 'offnoi_fit_unbinned.npy'), fit_unbinned)
         np.save(os.path.join(self.step_dir, 'offnoi_fit.npy'), fit_curve_fit)
         if self.thres_bad_slopes != 0:
-            bad_slopes_pos, bad_slopes_data = self.get_bad_slopes(data)
+            bad_slopes_pos, bad_slopes_data, bad_slopes_value = self.get_bad_slopes(data)
             np.save(os.path.join(self.step_dir, 'bad_slopes_pos.npy'), bad_slopes_pos)
             np.save(os.path.join(self.step_dir, 'bad_slopes_data.npy'), bad_slopes_data)
+            np.save(os.path.join(self.step_dir, 'bad_slopes_value.npy'), bad_slopes_value)

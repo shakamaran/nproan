@@ -122,9 +122,10 @@ class Filter(cm.Common):
         np.save(os.path.join(self.step_dir, 'sum_of_event_counts.npy'),
                 self.get_sum_of_event_counts(event_map))
         if self.thres_bad_slopes != 0:
-            bad_slopes_pos, bad_slopes_data = self.get_bad_slopes(data)
+            bad_slopes_pos, bad_slopes_data, bad_slopes_value = self.get_bad_slopes(data)
             np.save(os.path.join(self.step_dir, 'bad_slopes_pos.npy'), bad_slopes_pos)
             np.save(os.path.join(self.step_dir, 'bad_slopes_data.npy'), bad_slopes_data)
+            np.save(os.path.join(self.step_dir, 'bad_slopes_value.npy'), bad_slopes_value)
                 
     def calc_event_map(self, avg_over_nreps):
         print('Finding events')

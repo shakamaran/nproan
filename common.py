@@ -225,7 +225,7 @@ class Common:
         print(f'Excluded {excluded_frames} frames')
         title = f'Average signal per frame. Excluded {excluded_frames} frames'
         draw_hist_and_gauss_fit(avg_per_frame, 100, fit[0], fit[1], fit[2],
-                                title, 'bad_frames', 
+                                'bad_frames', 
                                 save_to = self.step_dir)
         return data[~bad_pixel_mask]
     
@@ -248,7 +248,6 @@ class Common:
         print('Calculating bad slopes')
         slopes = np.apply_along_axis(linear_fit, axis = 2, arr = data)[:, :, 0, :]
         print(f'Shape of slopes: {slopes.shape}')
-        np.save(os.path.join(self.step_dir, 'slopes.npy'), slopes)
         fit = fit_gauss_to_hist(slopes.flatten())
         print(f'Fit: {fit}')
         lower_bound = fit[1] - self.thres_bad_slopes*np.abs(fit[2])
@@ -257,6 +256,7 @@ class Common:
         bad_slopes_mask = (slopes < lower_bound) | (slopes > upper_bound)
         frame, row, column = np.where(bad_slopes_mask)
         bad_slopes_pos = np.array([frame, row, column]).T
+        bad_slopes_value = slopes[bad_slopes_mask]
         #get indices of frames with bad slopes
         bad_slopes_data = data[frame.T, row.T, :, column.T]
         print(f'Found {len(bad_slopes_pos)} bad Slopes')
@@ -264,9 +264,9 @@ class Common:
         print(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
         title = f'Slope Values for each Pixel and Frame. {len(bad_slopes_pos)} bad slopes found.'
         draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
-                                title, 'bad_slopes', 
+                                'bad_slopes', 
                                 save_to = self.step_dir)
-        return bad_slopes_pos, bad_slopes_data
+        return bad_slopes_pos, bad_slopes_data, bad_slopes_value
 
     def set_bad_pixellist_to_nan(self, data):
         '''
@@ -483,7 +483,7 @@ def draw_graph(data, file_name="graph", save_to=None, **kwargs):
     else:
         plt.show()
 
-def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name, save_to=None):
+def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, file_name=None, save_to=None):
     '''
     Draw a histogram of the data and a gaussian fit
 
@@ -500,13 +500,14 @@ def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name
     plt.clf()
     hist, hist_bins = np.histogram(data, bins, range=(np.nanmin(data), np.nanmax(data)), density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
-    plt.hist(data, bins=hist_bins, density=True, alpha=0.5, label='Histogram')
-    plt.plot(bin_centers, gaussian(bin_centers, amplitude, mean, sigma), 'r-', label='Fitted Curve')
-    plt.title(title)
+    plt.hist(data, bins=hist_bins, density=True, alpha=0.5)
+    plt.plot(bin_centers, gaussian(bin_centers, amplitude, mean, sigma), 'r-')
+    plt.title(f'Fitted parameters:\nMean: {mean:.2f}\nSigma: {sigma:.2f}')
     plt.xlabel('Value')
     plt.ylabel('Frequency')
-    plt.legend()
     if save_to is not None:
+        if file_name is None:
+            file_name = 'hist_and_fit'
         plt.savefig(save_to + '/' + file_name + '.png')
         plt.close()
     else:
@@ -527,7 +528,7 @@ def linear_fit(data):
     k, d = np.polyfit(x, data, 1)
     return np.array([k, d])
 
-def set_pixels_to_nan(data, indices):
+def get_pixels_to_nan(data, indices):
     '''
     copies the data array, sets all pixels to nan
     
@@ -538,7 +539,7 @@ def set_pixels_to_nan(data, indices):
     if np.ndim(data) != 3:
         print('Data has wrong dimensions')
         return None
-    if np.ndim(indices) != 3:
+    if np.ndim(indices) != 2:
         print('Pixel positions have wrong dimensions')
         return None
     data_copy = data.copy()
@@ -561,3 +562,17 @@ def get_rolling_average(data, window_size):
     weights = np.repeat(1.0, window_size) / window_size
     # Use 'valid' mode to ensure that output has the same length as input
     return np.convolve(data, weights, mode='valid')
+
+def load_npy_files(folder):
+    # Get a list of all .npy files in the folder
+    files = [f for f in os.listdir(folder) if f.endswith('.npy')]
+
+    # Load each file into a numpy array and store it in a dictionary
+    arrays = {}
+    for file in files:
+        # Remove the .npy extension from the filename
+        name = os.path.splitext(file)[0]
+        # Load the file and store it in the dictionary
+        arrays[name] = np.load(os.path.join(folder, file), allow_pickle=True)
+
+    return arrays
