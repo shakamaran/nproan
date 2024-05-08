@@ -236,3 +236,15 @@ class Params:
         else:
             print('No json file found in the folder')
             return False
+        
+    def estimate_ram_usage(self):
+        pixel_per_frame = self.param_dict['common_column_size'] * self.param_dict['common_row_size']
+        frames_offnoi = self.param_dict['offnoi_nframes']
+        frames_filter = self.param_dict['filter_nframes']
+        nreps_offnoi = self.param_dict['offnoi_nreps']
+        nreps_filter = self.param_dict['filter_nreps']
+        offnoi = int((frames_offnoi * nreps_offnoi * pixel_per_frame * 8) /(1024**3))
+        filter = int((frames_filter * nreps_filter * pixel_per_frame * 8) /(1024**3))
+
+        print(f'Recommended RAM for OffNoi: {offnoi*3+2} GB')
+        print(f'Recommended RAM for Filter: {filter*3+2} GB')

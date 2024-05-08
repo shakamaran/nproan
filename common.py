@@ -47,7 +47,6 @@ class Common:
             #check if file is at its end
             if inp_data.size == 0:
                 print(f'\nLoaded {frames_here} of {self.nframes} requested frames, end of file reached.')
-                print('Run calc()\n~~~~~')
                 return polarity*output[:frames_here].copy()
             print(f'\rReading chunk {count+1} from bin file, \
                   {frames_here} frames loaded', end='')
@@ -88,7 +87,6 @@ class Common:
                 output[frames_here:] = inp_data[:self.nframes-frames_here]
                 frames_here += frames_inc
                 print(f'\nLoaded {self.nframes} frames')
-                print('Run calculate()\n~~~~~')
                 return polarity*output.copy()
             output[frames_here:frames_here+frames_inc] = \
             inp_data.reshape(-1, self.column_size, 
@@ -258,7 +256,7 @@ class Common:
         print(f'Lower bound: {lower_bound}, Upper bound: {upper_bound}')
         bad_slopes_mask = (slopes < lower_bound) | (slopes > upper_bound)
         frame, row, column = np.where(bad_slopes_mask)
-        bad_slopes_pos = np.array([frame, column, row]).T
+        bad_slopes_pos = np.array([frame, row, column]).T
         #get indices of frames with bad slopes
         bad_slopes_data = data[frame.T, row.T, :, column.T]
         print(f'Found {len(bad_slopes_pos)} bad Slopes')
@@ -273,7 +271,7 @@ class Common:
     def set_bad_pixellist_to_nan(self, data):
         '''
         Sets all ignored Pixels in data to NaN. List of pixels is from the
-        parameter file. [(col,row), (col,row), ...]
+        parameter file. [(row,col), (row,col), ...]
 
         Args:
             np.array in shape (nframes, column_size, nreps, row_size)
@@ -287,41 +285,31 @@ class Common:
         print('Excluding bad pixels')
         bad_pixel_mask = np.zeros(data.shape, dtype=bool)
         for index in self.bad_pixels:
-            col = index[0]
-            row = index[1]
+            col = index[1]
+            row = index[0]
             bad_pixel_mask[:,row,:,col] = True
         data[bad_pixel_mask] = np.nan
         print(f'Excluded {len(self.bad_pixels)} pixels')
         return data
 
-    def get_common_corrected_data(self, data):
+    def correct_common_mode(self,data):
         '''
         Calculates the median of euch row in data, and substracts it from 
         the row.
+        Correction is done inline to save memory.
 
         Args:
             np.array in shape (nframes, column_size, nreps, row_size)
-        Returns:
-            np.array in shape (nframes, column_size, nreps, row_size)
         '''
-        if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
-            return None
-        print('Starting common mode correction') 
-        def common_in_row(row_data):
-            median = np.nanmedian(row_data)
-            return row_data - median
-        return np.apply_along_axis(common_in_row, axis = 3, arr = data)
-    '''
-        if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
-            return None
         print('Starting common mode correction')  
-        median_common = np.nanmedian(data, axis = 3)[:,:,:,np.newaxis]
+        # Iterate over the nframes dimension
+        for i in range(data.shape[0]):
+            # Calculate the median for one frame
+            median_common = np.nanmedian(data[i], axis=2, keepdims=True)
+            # Subtract the median from the frame in-place
+            data[i] -= median_common
         print('Data is corrected for common mode')
-        return data - median_common
-    '''
-
+    
     def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
 
@@ -408,8 +396,14 @@ def fit_gauss_to_hist(data_to_fit):
         return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
 
 def unbinned_fit_gauss_to_hist(data_to_fit):
-        ''' fits a gaussian to a histogram of data_to_fit
-        return np.array[amplitude, mean, sigma, error_mean, error_sigma]
+        '''
+        fits a gaussian to a histogram of data_to_fit
+
+        Args:
+            1D np.array
+
+        Returns:
+            np.array[amplitude, mean, sigma, error_mean, error_sigma]
         '''
         #TODO: this doesnt seem to work: test this!
         c = cost.UnbinnedNLL(data_to_fit, gaussian)
@@ -433,22 +427,30 @@ def unbinned_fit_gauss_to_hist(data_to_fit):
 def draw_hist(data, file_name="histogram", save_to=None, **kwargs):
     '''
     Draw a histogram of the data
-    if save is True, the histogram is saved as a .png file
-    kwargs are passed to plt.hist
+    
+    Args:
+        np.array
+        file_name: str
+        save_to: str
+        **kwargs: passed to plt.hist
     '''
     plt.clf()
     plt.hist(data.ravel(), **kwargs)
     if save_to is not None:
         plt.savefig(save_to + file_name + '.png')
+        plt.close()
     else:
         plt.show()
 
 def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
     '''
     Draw a heatmap of the data
-    if save is True, the heatmap is saved as a .png file
-    Returns nothing if data is not 2D
-    kwargs are passed to sns.heatmap
+    
+    Args:
+        np.array
+        file_name: str
+        save_to: str (optional)
+        **kwargs: passed to sns.heatmap
     '''
     if data.ndim !=2:
         print('Data is not 2D')
@@ -459,23 +461,42 @@ def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
     sns.heatmap(data, cmap=cmap, **kwargs)
     if save_to is not None:
         plt.savefig(save_to + file_name + '.png')
+        plt.close()
     else:
         plt.show()
 
 def draw_graph(data, file_name="graph", save_to=None, **kwargs):
     '''
     Draw a graph of the data
-    if save is True, the graph is saved as a .png file
-    kwargs are passed to plt.plot
+    
+    Args:
+        np.array
+        file_name: str
+        save_to: str (optional)
+        **kwargs: passed to plt.plot
     '''
     plt.clf()
     plt.plot(data.ravel(), **kwargs)
     if save_to is not None:
         plt.savefig(save_to + file_name + '.png')
+        plt.close()
     else:
         plt.show()
 
 def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name, save_to=None):
+    '''
+    Draw a histogram of the data and a gaussian fit
+
+    Args:
+        np.array
+        bins: int
+        amplitude: float
+        mean: float
+        sigma: float
+        title: str
+        file_name: str
+        save_to: str (optional)
+    '''
     plt.clf()
     hist, hist_bins = np.histogram(data, bins, range=(np.nanmin(data), np.nanmax(data)), density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
@@ -487,6 +508,7 @@ def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name
     plt.legend()
     if save_to is not None:
         plt.savefig(save_to + '/' + file_name + '.png')
+        plt.close()
     else:
         plt.show()
 
@@ -507,9 +529,11 @@ def linear_fit(data):
 
 def set_pixels_to_nan(data, indices):
     '''
-    gets a list of pixel/frame positions: [frame,row,column]
     copies the data array, sets all pixels to nan
-    and returns the new array
+    
+    Args:
+        np.array in shape (nframes, column_size, row_size)
+        list of tuples [(frame, row, column), (frame, row, column), ...]
     '''
     if np.ndim(data) != 3:
         print('Data has wrong dimensions')

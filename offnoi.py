@@ -55,15 +55,18 @@ class OffNoi(cm.Common):
 
         data = self.get_data()
         gc.collect()
-        #omit bad pixels and mips frames
+        #delete nreps_eval from data
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)
             print(f'Shape of data: {data.shape}')
+        #set values of all frames and nreps of bad pixels to nan
         if self.bad_pixels:
             data = self.set_bad_pixellist_to_nan(data)
+        #deletes bad frames from data
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
             print(f'Shape of data: {data.shape}')
+        #deletes frames with mips above threshold from data
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
             print(f'Shape of data: {data.shape}')
@@ -80,7 +83,7 @@ class OffNoi(cm.Common):
         del avg_over_frames
         gc.collect()
         if self.comm_mode is True:
-            data = self.get_common_corrected_data(data)
+            self.correct_common_mode(data)
         #calculate rndr signals and save it
         avg_over_nreps = self.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),

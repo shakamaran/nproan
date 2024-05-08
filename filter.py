@@ -106,7 +106,7 @@ class Filter(cm.Common):
         self.offset_raw = None
         gc.collect()
         if self.comm_mode:
-            data = self.get_common_corrected_data(data)
+            self.correct_common_mode(data)
         if self.use_fitted_offset:
             #take care here, offset fitted can contain np.nan
             data -= np.nan_to_num(self.offset_fitted[np.newaxis,:,np.newaxis,:])

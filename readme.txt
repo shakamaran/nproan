@@ -1,26 +1,27 @@
 TODO:
 Prio:
+- start analysing some files in notebooks and add functions to common.py
+    check the fitting while youre at it (implement minuit)
 - bad slopes should be ignored in the fitting in the offnoi step
 - create a class, that simply takes a parameter file and calculates everything
     with a slurm job.
-- start analysing some files in notebooks and add functions to common.py
-    check the fitting while youre at it (implement minuit)
 - add infos to plots
 
 -upload whole package to github
 -check if nproanPackage needs to be uploaded
--install on conda in group folder
 -test it with collagues
 -exceptions und logging
 -wiki updaten
+
 
 keine Prio:
 -Zeitschätzung?
 
 COL vs ROW Convention:
 
-In ROOT its (col, row), so externally i want to preserve this.
-Althought data is represented as (frame,row,nreps,col)
+In ROOT its (col, row), but:
+data is represented as (frame,row,nreps,col), so i will use (row, col) here
+Size if data is (frames,column_size,nreps, row_size)
 
 
 My current philosophy for doing stuff:
@@ -48,5 +49,7 @@ My current philosophy for doing stuff:
 - functions that return values should be named get_something(), its preferred To
     return a value. 
 - data should not be stored in the class
-- data that is loaded in the filter or gain step is stored in a class variable
-    and deleted after use
+- data that is loaded from file in the filter or gain step is stored in a class 
+    variable and deleted after use
+- manipulations of the big data array should be done inplace (currently only
+    common mode correction) to save memory
