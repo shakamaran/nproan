@@ -83,7 +83,7 @@ class Gain(cm.Common):
             def gaussian(x, a1, mu1, sigma1):
                 return a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2))
             try:
-                hist, bins = np.histogram(data, bins=10, density=True)
+                hist, bins = np.histogram(data, bins=10, range=(np.nanmin(data), np.nanmax(data)), density=True)
                 bin_centers = (bins[:-1] + bins[1:]) / 2
                 params, covar = curve_fit(gaussian, 
                                           bin_centers, 

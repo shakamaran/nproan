@@ -74,7 +74,7 @@ class Filter(cm.Common):
             self.common_dir = os.path.dirname(offnoi_dir)
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
             self.step_dir = os.path.join(
-                self.common_dir, timestamp + f'_filter_{self.thres_event}_threshold'
+                self.common_dir,f'filter_{self.thres_event}_threshold'
             )
             print(self.step_dir)
         except:
@@ -88,6 +88,7 @@ class Filter(cm.Common):
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = self.get_data()
+        gc.collect()
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)
             print(f'Shape of data: {data.shape}')
@@ -107,7 +108,8 @@ class Filter(cm.Common):
         if self.comm_mode:
             data = self.get_common_corrected_data(data)
         if self.use_fitted_offset:
-            data -= self.offset_fitted[np.newaxis,:,np.newaxis,:]
+            #take care here, offset fitted can contain np.nan
+            data -= np.nan_to_num(self.offset_fitted[np.newaxis,:,np.newaxis,:])
         avg_over_nreps = self.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
                 avg_over_nreps)

@@ -54,6 +54,7 @@ class OffNoi(cm.Common):
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = self.get_data()
+        gc.collect()
         #omit bad pixels and mips frames
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)

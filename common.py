@@ -89,7 +89,7 @@ class Common:
                 frames_here += frames_inc
                 print(f'\nLoaded {self.nframes} frames')
                 print('Run calculate()\n~~~~~')
-                return polarity*output
+                return polarity*output.copy()
             output[frames_here:frames_here+frames_inc] = \
             inp_data.reshape(-1, self.column_size, 
                               self.nreps, self.row_size).astype(float)
@@ -249,9 +249,13 @@ class Common:
             return None
         print('Calculating bad slopes')
         slopes = np.apply_along_axis(linear_fit, axis = 2, arr = data)[:, :, 0, :]
+        print(f'Shape of slopes: {slopes.shape}')
+        np.save(os.path.join(self.step_dir, 'slopes.npy'), slopes)
         fit = fit_gauss_to_hist(slopes.flatten())
-        lower_bound = fit[1] - self.thres_bad_frames*np.abs(fit[2])
-        upper_bound = fit[1] + self.thres_bad_frames*np.abs(fit[2])
+        print(f'Fit: {fit}')
+        lower_bound = fit[1] - self.thres_bad_slopes*np.abs(fit[2])
+        upper_bound = fit[1] + self.thres_bad_slopes*np.abs(fit[2])
+        print(f'Lower bound: {lower_bound}, Upper bound: {upper_bound}')
         bad_slopes_mask = (slopes < lower_bound) | (slopes > upper_bound)
         frame, row, column = np.where(bad_slopes_mask)
         bad_slopes_pos = np.array([frame, column, row]).T
@@ -303,10 +307,20 @@ class Common:
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
+        print('Starting common mode correction') 
+        def common_in_row(row_data):
+            median = np.nanmedian(row_data)
+            return row_data - median
+        return np.apply_along_axis(common_in_row, axis = 3, arr = data)
+    '''
+        if np.ndim(data) != 4:
+            print('Data has wrong dimensions')
+            return None
         print('Starting common mode correction')  
         median_common = np.nanmedian(data, axis = 3)[:,:,:,np.newaxis]
         print('Data is corrected for common mode')
         return data - median_common
+    '''
 
     def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
@@ -325,12 +339,18 @@ def get_unbinned_fit_gauss(data):
     fits a gaussian to a histogram of data
     using the unbinned method in minuit
     returns a np.array in shape (6, rows, columns)
-    index 0: amplitude
-    index 1: mean
-    index 2: sigma
-    index 3: error_amplitude
-    index 4: error_mean
-    index 5: error_sigma
+
+    Args:
+        np.array in shape (nframes, column_size, row_size)
+
+    Returns:
+        np.array in shape (6, rows, columns)
+        index 0: amplitude
+        index 1: mean
+        index 2: sigma
+        index 3: error_amplitude
+        index 4: error_mean
+        index 5: error_sigma
     '''
     if data.ndim != 3:
         print('Data has wrong dimensions')
@@ -340,15 +360,21 @@ def get_unbinned_fit_gauss(data):
     return output
 
 def get_fit_gauss(data):
-    ''' fits a gaussian to a histogram of data_to_fit
+    ''' 
+    fits a gaussian to a histogram of data_to_fit
     using the scipy curve_fit method
-    returns a np.array in shape (6, rows, columns)
-    index 0: amplitude
-    index 1: mean
-    index 2: sigma
-    index 3: error_amplitude
-    index 4: error_mean
-    index 5: error_sigma
+
+    Args:
+        np.array in shape (nframes, column_size, row_size)
+
+    Returns:
+        np.array in shape (6, rows, columns)
+        index 0: amplitude
+        index 1: mean
+        index 2: sigma
+        index 3: error_amplitude
+        index 4: error_mean
+        index 5: error_sigma
     '''
     if data.ndim != 3:
         print('Data has wrong dimensions')
@@ -358,12 +384,18 @@ def get_fit_gauss(data):
     return output
 
 def fit_gauss_to_hist(data_to_fit):
-    ''' fits a gaussian to a histogram of data_to_fit
-    return np.array[amplitude, mean, sigma, error_mean, error_sigma]
+    ''' 
+    fits a gaussian to a histogram of data_to_fit
+
+    Args:
+        1D np.array
+    
+    Returns:
+        np.array[amplitude, mean, sigma, error_amplitude, error_mean, error_sigma]
     '''
-    guess = [1, np.median(data_to_fit), np.std(data_to_fit)]
+    guess = [1, np.nanmedian(data_to_fit), np.nanstd(data_to_fit)]
     try:
-        hist, bins = np.histogram(data_to_fit, bins=100, density=True)
+        hist, bins = np.histogram(data_to_fit, bins=100, range=(np.nanmin(data_to_fit), np.nanmax(data_to_fit)), density=True)
         bin_centers = (bins[:-1] + bins[1:]) / 2
         params, covar = curve_fit(gaussian, bin_centers, hist, p0=guess)
         return np.array([params[0],
@@ -383,10 +415,10 @@ def unbinned_fit_gauss_to_hist(data_to_fit):
         c = cost.UnbinnedNLL(data_to_fit, gaussian)
         m = Minuit(c, 
                    a1=1, 
-                   mu1=np.median(data_to_fit), 
-                   sigma1=np.std(data_to_fit))
+                   mu1=np.nanmedian(data_to_fit), 
+                   sigma1=np.nanstd(data_to_fit))
         m.limits['a1'] = (0, 100)
-        m.limits['mu1'] = (np.min(data_to_fit), np.max(data_to_fit))
+        m.limits['mu1'] = (np.nanmin(data_to_fit), np.nanmax(data_to_fit))
         m.limits['sigma1'] = (0, 100)
         m.migrad()
         if not m.valid:
@@ -398,7 +430,7 @@ def unbinned_fit_gauss_to_hist(data_to_fit):
                          m.errors['mu1'],
                          m.errors['sigma1']])
 
-def draw_hist(data,file_name="histogram", save_to=None, **kwargs):
+def draw_hist(data, file_name="histogram", save_to=None, **kwargs):
     '''
     Draw a histogram of the data
     if save is True, the histogram is saved as a .png file
@@ -411,7 +443,7 @@ def draw_hist(data,file_name="histogram", save_to=None, **kwargs):
     else:
         plt.show()
 
-def draw_heatmap(data,file_name="heatmap", save_to=None, **kwargs):
+def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
     '''
     Draw a heatmap of the data
     if save is True, the heatmap is saved as a .png file
@@ -430,7 +462,7 @@ def draw_heatmap(data,file_name="heatmap", save_to=None, **kwargs):
     else:
         plt.show()
 
-def draw_graph(data,file_name="graph", save_to=None, **kwargs):
+def draw_graph(data, file_name="graph", save_to=None, **kwargs):
     '''
     Draw a graph of the data
     if save is True, the graph is saved as a .png file
@@ -445,7 +477,7 @@ def draw_graph(data,file_name="graph", save_to=None, **kwargs):
 
 def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, title, file_name, save_to=None):
     plt.clf()
-    hist, hist_bins = np.histogram(data, bins, density=True)
+    hist, hist_bins = np.histogram(data, bins, range=(np.nanmin(data), np.nanmax(data)), density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
     plt.hist(data, bins=hist_bins, density=True, alpha=0.5, label='Histogram')
     plt.plot(bin_centers, gaussian(bin_centers, amplitude, mean, sigma), 'r-', label='Fitted Curve')
@@ -470,8 +502,8 @@ def two_gaussians(x, a1, mu1, sigma1, a2, mu2, sigma2):
 
 def linear_fit(data):
     x = np.arange(data.size)
-    m, b = np.polyfit(x, data, 1)
-    return np.array([m, b])
+    k, d = np.polyfit(x, data, 1)
+    return np.array([k, d])
 
 def set_pixels_to_nan(data, indices):
     '''
