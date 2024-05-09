@@ -10,9 +10,10 @@ Prio:
 -upload whole package to github
 -check if nproanPackage needs to be uploaded
 -test it with collagues
--exceptions und logging
+-exceptions und logging: farben für logging
 -wiki updaten
 
+-multiprocessing probieren!
 
 keine Prio:
 -Zeitschätzung?
