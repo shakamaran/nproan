@@ -40,16 +40,16 @@ class OffNoi(cm.Common):
         self.step_dir = os.path.join(self.common_dir, 
             f'offnoi_{self.nreps}reps_{self.nframes}frames')
 
-        print(f'Parameters loaded:')
+        self.logger.warning(f'Parameters loaded:')
         self.prm.print_contents()
 
     def calculate(self):   
         #reate the directory for the data
         os.makedirs(self.common_dir, exist_ok=True)
-        print(f'Created common directory for data: {self.common_dir}')
+        self.logger.info(f'Created common directory for data: {self.common_dir}')
         #now, create the working directory for the offnoi step
         os.makedirs(self.step_dir, exist_ok=True)
-        print(f'Created working directory for offnoi step: {self.step_dir}')
+        self.logger.info(f'Created working directory for offnoi step: {self.step_dir}')
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 

@@ -6,7 +6,10 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import seaborn as sns
+import multiprocessing as mp
+from numba import prange
 from iminuit import cost, Minuit
+from .logger import Logger
 
 '''
 This is the base class.
@@ -19,6 +22,8 @@ class Common:
     take care with variable names!
     eg: self.nframes must have the same name in every Child class
     '''
+    logger = Logger('nproan', 'info').get_logger()
+
     def get_data(self):
         '''
         Reads the binary file (in chunks) and returns the data as a numpy array 
@@ -46,10 +51,10 @@ class Common:
                                    count = chunk_size, offset = offset)
             #check if file is at its end
             if inp_data.size == 0:
-                print(f'\nLoaded {frames_here} of {self.nframes} requested frames, end of file reached.')
+                self.logger.info(f'Loaded {frames_here} of {self.nframes} requested frames, end of file reached.')
                 return polarity*output[:frames_here].copy()
-            print(f'\rReading chunk {count+1} from bin file, \
-                  {frames_here} frames loaded', end='')
+            self.logger.info(f'Reading chunk {count+1} from bin file, \
+                  {frames_here} frames loaded')
             #reshape the array into rows -> (#ofRows,67)
             inp_data = inp_data.reshape(-1, raw_row_size)
             #find all the framekeys
@@ -62,9 +67,8 @@ class Common:
             rows_per_frame = self.row_size*self.nreps
             valid_frames_position = np.nonzero(diff == rows_per_frame)[1]
             if len(valid_frames_position) == 0:
-                print('No valid frames found in chunk, maybe nreps wrong?')
-                print(f'Here is a hint: {diff}')
-                break
+                self.logger.error('No valid frames found in chunk, wrong nreps.')
+                raise Exception('No valid frames found in chunk, wrong nreps.')
             del diff
             gc.collect()
             valid_frames = frames.T[valid_frames_position]
@@ -86,7 +90,7 @@ class Common:
                                              self.row_size).astype(float)
                 output[frames_here:] = inp_data[:self.nframes-frames_here]
                 frames_here += frames_inc
-                print(f'\nLoaded {self.nframes} frames')
+                self.logger.info(f'\nLoaded {self.nframes} frames')
                 return polarity*output.copy()
             output[frames_here:frames_here+frames_inc] = \
             inp_data.reshape(-1, self.column_size, 
@@ -301,14 +305,14 @@ class Common:
         Args:
             np.array in shape (nframes, column_size, nreps, row_size)
         '''
-        print('Starting common mode correction')  
+        print(f'Starting common mode correction at {datetime.now()}')  
         # Iterate over the nframes dimension
         for i in range(data.shape[0]):
             # Calculate the median for one frame
             median_common = np.nanmedian(data[i], axis=2, keepdims=True)
             # Subtract the median from the frame in-place
             data[i] -= median_common
-        print('Data is corrected for common mode')
+        print(f'Data is corrected for common mode at {datetime.now()}')
     
     def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
