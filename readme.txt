@@ -54,3 +54,25 @@ My current philosophy for doing stuff:
     variable and deleted after use
 - manipulations of the big data array should be done inplace (currently only
     common mode correction) to save memory
+
+
+
+Parallelization using numba:
+
+@nb.jit(nopython=True, parallel=True)
+def nanmedian_nb(data):
+    #axis = 3
+    frames = data.shape[0]
+    rows = data.shape[1]
+    nreps = data.shape[2]
+    output = np.zeros((frames, rows, nreps, 1))
+    for frame in nb.prange(frames):
+        for row in nb.prange(rows):
+            for nrep in nb.prange(nreps):
+                median = np.nanmedian(data[frame,row,nrep,:])
+                output[frame,row,nrep,0] = median
+    return output
+
+@nb.jit(nopython=True)
+def common_nb(data):
+    return data - nanmedian_nb(data)
