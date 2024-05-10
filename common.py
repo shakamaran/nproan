@@ -7,9 +7,10 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import seaborn as sns
 import multiprocessing as mp
-from numba import prange
+import numba as nb
 from iminuit import cost, Minuit
 from .logger import Logger
+
 
 '''
 This is the base class.
@@ -111,7 +112,7 @@ class Common:
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
-        return np.nanmean(data, axis = 0)
+        return nanmean_nb(data, axis = 0, keepdims = False)
     @staticmethod
     def get_avg_over_nreps(data):
         '''
@@ -126,7 +127,7 @@ class Common:
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
-        return np.nanmean(data, axis = 2)
+        return nanmean_nb(data, axis = 2, keepdims = False)
     @staticmethod
     def get_avg_over_frames_and_nreps(data):
         '''
@@ -141,7 +142,7 @@ class Common:
         if np.ndim(data) != 4:
             print('Data has wrong dimensions')
             return None
-        return np.nanmean(data, axis = (0,2))
+        return nanmean_nb(nanmean_nb(data, axis = 0, keepdims = False), axis = 1, keepdims = False)
 
     def exclude_nreps_eval(self, data):
         '''
@@ -219,7 +220,7 @@ class Common:
             print('Data has wrong dimensions')
             return None
         print('Excluding bad frames')
-        avg_per_frame = np.nanmean(data, axis = (1,2,3))
+        avg_per_frame = nanmedian_nb(nanmedian_nb(nanmedian_nb(data, axis = 3, keepdims = False), axis = 2, keepdims = False), axis = 1, keepdims = False)
         np.save(os.path.join(self.step_dir, 'avg_per_frame.npy'), avg_per_frame)
         fit = fit_gauss_to_hist(avg_per_frame)
         lower_bound = fit[1] - self.thres_bad_frames*np.abs(fit[2])
@@ -305,14 +306,15 @@ class Common:
         Args:
             np.array in shape (nframes, column_size, nreps, row_size)
         '''
-        print(f'Starting common mode correction at {datetime.now()}')  
+        '''
         # Iterate over the nframes dimension
         for i in range(data.shape[0]):
             # Calculate the median for one frame
             median_common = np.nanmedian(data[i], axis=2, keepdims=True)
             # Subtract the median from the frame in-place
             data[i] -= median_common
-        print(f'Data is corrected for common mode at {datetime.now()}')
+        '''
+        data -= nanmedian_nb(data, axis = 3, keepdims = True)
     
     def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
@@ -580,3 +582,172 @@ def load_npy_files(folder):
         arrays[name] = np.load(os.path.join(folder, file), allow_pickle=True)
 
     return arrays
+
+#TODO: write seperate functions for keepdims and no keepdims
+@nb.jit(nopython=True, parallel=True)
+def nanmedian_nb(data, axis, keepdims=False):
+    #keepdims=True
+    #assume a 4d Array!
+    if data.ndim != 4:
+        print('Wrong dimensions')
+        return 0
+    frames = data.shape[0]
+    rows = data.shape[1]
+    nreps = data.shape[2]
+    cols = data.shape[3]
+
+    if axis == 0 and keepdims:
+        output = np.zeros((1, rows, nreps, cols))
+        for row in nb.prange(rows):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmedian(data[:,row,nrep,col])
+                    output[0,row,nrep,col] = median
+        return output
+    
+    if axis == 1 and keepdims:
+        output = np.zeros((frames, 1, nreps, cols))
+        for frame in nb.prange(frames):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmedian(data[frame,:,nrep,col])
+                    output[frame,0,nrep,col] = median
+        return output
+    
+    if axis == 2 and keepdims:
+        output = np.zeros((frames, rows, 1, cols))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for col in nb.prange(cols):
+                    median = np.nanmedian(data[frame,row,:,col])
+                    output[frame,row,0,col] = median
+        return output
+    
+    if axis == 3 and keepdims:
+        output = np.zeros((frames, rows, nreps, 1))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for nrep in nb.prange(nreps):
+                    median = np.nanmedian(data[frame,row,nrep,:])
+                    output[frame,row,nrep,0] = median
+        return output
+    
+    if axis == 0 and not keepdims:
+        output = np.zeros((rows, nreps, cols))
+        for row in nb.prange(rows):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmedian(data[:,row,nrep,col])
+                    output[row,nrep,col] = median
+        return output
+    
+    if axis == 1 and not keepdims:
+        output = np.zeros((frames, nreps, cols))
+        for frame in nb.prange(frames):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmedian(data[frame,:,nrep,col])
+                    output[frame,nrep,col] = median
+        return output
+    
+    if axis == 2 and not keepdims:
+        output = np.zeros((frames, rows, cols))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for col in nb.prange(cols):
+                    median = np.nanmedian(data[frame,row,:,col])
+                    output[frame,row,col] = median
+        return output
+    
+    if axis == 3 and not keepdims:
+        output = np.zeros((frames, rows, nreps))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for nrep in nb.prange(nreps):
+                    median = np.nanmedian(data[frame,row,nrep,:])
+                    output[frame,row,nrep] = median
+        return output
+
+@nb.jit(nopython=True, parallel=True)
+def nanmean_nb(data, axis, keepdims=False):
+    #keepdims=True
+    #assume a 4d Array!
+    if data.ndim != 4:
+        print('Wrong dimensions')
+        return 0
+    frames = data.shape[0]
+    rows = data.shape[1]
+    nreps = data.shape[2]
+    cols = data.shape[3]
+
+    if axis == 0 and keepdims:
+        output = np.zeros((1, rows, nreps, cols))
+        for row in nb.prange(rows):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmean(data[:,row,nrep,col])
+                    output[0,row,nrep,col] = median
+        return output
+    
+    if axis == 1 and keepdims:
+        output = np.zeros((frames, 1, nreps, cols))
+        for frame in nb.prange(frames):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmean(data[frame,:,nrep,col])
+                    output[frame,0,nrep,col] = median
+        return output
+    
+    if axis == 2 and keepdims:
+        output = np.zeros((frames, rows, 1, cols))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for col in nb.prange(cols):
+                    median = np.nanmean(data[frame,row,:,col])
+                    output[frame,row,0,col] = median
+        return output
+    
+    if axis == 3 and keepdims:
+        output = np.zeros((frames, rows, nreps, 1))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for nrep in nb.prange(nreps):
+                    median = np.nanmean(data[frame,row,nrep,:])
+                    output[frame,row,nrep,0] = median
+        return output
+    
+    if axis == 0 and not keepdims:
+        output = np.zeros((rows, nreps, cols))
+        for row in nb.prange(rows):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmean(data[:,row,nrep,col])
+                    output[row,nrep,col] = median
+        return output
+    
+    if axis == 1 and not keepdims:
+        output = np.zeros((frames, nreps, cols))
+        for frame in nb.prange(frames):
+            for nrep in nb.prange(nreps):
+                for col in nb.prange(cols):
+                    median = np.nanmean(data[frame,:,nrep,col])
+                    output[frame,nrep,col] = median
+        return output
+    
+    if axis == 2 and not keepdims:
+        output = np.zeros((frames, rows, cols))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for col in nb.prange(cols):
+                    median = np.nanmean(data[frame,row,:,col])
+                    output[frame,row,col] = median
+        return output
+    
+    if axis == 3 and not keepdims:
+        output = np.zeros((frames, rows, nreps))
+        for frame in nb.prange(frames):
+            for row in nb.prange(rows):
+                for nrep in nb.prange(nreps):
+                    median = np.nanmean(data[frame,row,nrep,:])
+                    output[frame,row,nrep] = median
+        return output
