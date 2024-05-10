@@ -309,7 +309,7 @@ class Common:
         # Iterate over the nframes dimension
         for i in range(data.shape[0]):
             # Calculate the median for one frame
-            median_common = np.nanmedian(data[i], axis=2, keepdims=True)
+            median_common = np.nanmedian(data[i], axis=3, keepdims=True)
             # Subtract the median from the frame in-place
             data[i] -= median_common
         print(f'Data is corrected for common mode at {datetime.now()}')
