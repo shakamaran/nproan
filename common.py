@@ -266,7 +266,7 @@ class Common:
         bad_slopes_data = data[frame.T, row.T, :, column.T]
         self._logger.info(f'Found {len(bad_slopes_pos)} bad Slopes')
         self._logger.debug(f'Shape of bad slopes data: {bad_slopes_data.shape}')
-        self._logger.infdebugo(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
+        self._logger.debug(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
         title = f'Slope Values for each Pixel and Frame. {len(bad_slopes_pos)} bad slopes found.'
         draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
                                 'bad_slopes', 
