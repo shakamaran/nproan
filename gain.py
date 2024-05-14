@@ -12,9 +12,12 @@ from . import common as cm
 from . import params as pm
 
 class Gain(cm.Common):
+
+    _logger = cm.Logger('nproan-gain', 'debug').get_logger()
+
     def __init__(self, prm_file, filter_dir):
         self.load(prm_file, filter_dir)
-        print('Gain object created')
+        self._logger.info('Gain object created')
 
     def load(self, prm_file, filter_dir):
         self.prm = pm.Params(prm_file)
@@ -31,15 +34,15 @@ class Gain(cm.Common):
         self.nframes = parameters['filter_nframes']
         self.min_signals = parameters['gain_min_signals']
 
-        print(f'Parameters loaded:')
+        self._logger.info(f'Parameters loaded:')
         self.prm.print_contents()
         
-        print('Checking parameters in filter directory')
+        self._logger.info('Checking parameters in filter directory')
         #look for a json file in the filter directory
         if (not self.prm.same_common_params(filter_dir)) \
             or (not self.prm.same_offnoi_params(filter_dir) \
             or (not self.prm.same_filter_params(filter_dir))):
-            print('Parameters in filter directory do not match')
+            self._logger.error('Parameters in filter directory do not match')
             return
         try:
             self.event_map = cm.get_array_from_file(
@@ -53,16 +56,16 @@ class Gain(cm.Common):
                 self.common_dir, timestamp + f'_gain_{self.min_signals}_minsignals'
             )
         except:
-            print('Error loading filter data\n')
+            self._logger.error('Error loading filter data\n')
             return
-        print('Filter data loaded\n')
+        self._logger.info('Filter data loaded\n')
 
     def calculate(self):
         #create the working directory for the gain step
         self.step_dir = os.path.join(self.common_dir, 
                                      f'gain_{self.min_signals}_min_signals')
         os.makedirs(self.step_dir, exist_ok=True)
-        print(f'Created directory for gain step: {self.step_dir}')
+        self._logger.info(f'Created directory for gain step: {self.step_dir}')
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
         
@@ -101,11 +104,11 @@ class Gain(cm.Common):
                 signals = event_map[i,j]
                 if len(signals) >= self.min_signals:
                     params = fit_hist(signals)
-                    mean[i,j] = params[1]
+                    mean[i,j] = params[0]
                     sigma[i,j] = params[1]
                     mean_error[i,j] = params[2]
                     sigma_error[i,j] = params[3]
                 else:
                     count_too_few += 1
-        print(f'{count_too_few} pixels have less than {self.min_signals} signals')
+        self._logger.info(f'{count_too_few} pixels have less than {self.min_signals} signals')
         return mean, sigma, mean_error, sigma_error

@@ -22,7 +22,7 @@ class Common:
     take care with variable names!
     eg: self.nframes must have the same name in every Child class
     '''
-    logger = Logger('nproan', 'info').get_logger()
+    _logger = Logger('nproan-common', 'debug').get_logger()
 
     def get_data(self):
         '''
@@ -51,9 +51,9 @@ class Common:
                                    count = chunk_size, offset = offset)
             #check if file is at its end
             if inp_data.size == 0:
-                self.logger.info(f'Loaded {frames_here} of {self.nframes} requested frames, end of file reached.')
+                self._logger.warning(f'Loaded {frames_here} of {self.nframes} requested frames, end of file reached.')
                 return polarity*output[:frames_here].copy()
-            self.logger.info(f'Reading chunk {count+1} from bin file, \
+            self._logger.info(f'Reading chunk {count+1} from bin file, \
                   {frames_here} frames loaded')
             #reshape the array into rows -> (#ofRows,67)
             inp_data = inp_data.reshape(-1, raw_row_size)
@@ -67,7 +67,7 @@ class Common:
             rows_per_frame = self.row_size*self.nreps
             valid_frames_position = np.nonzero(diff == rows_per_frame)[1]
             if len(valid_frames_position) == 0:
-                self.logger.error('No valid frames found in chunk, wrong nreps.')
+                self._logger.error('No valid frames found in chunk, wrong nreps.')
                 raise Exception('No valid frames found in chunk, wrong nreps.')
             del diff
             gc.collect()
@@ -90,7 +90,7 @@ class Common:
                                              self.row_size).astype(float)
                 output[frames_here:] = inp_data[:self.nframes-frames_here]
                 frames_here += frames_inc
-                self.logger.info(f'\nLoaded {self.nframes} frames')
+                self._logger.info(f'\nLoaded {self.nframes} frames')
                 return polarity*output.copy()
             output[frames_here:frames_here+frames_inc] = \
             inp_data.reshape(-1, self.column_size, 
@@ -109,7 +109,7 @@ class Common:
             np.array in shape (column_size, nreps, row_size)
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            Common._logger.error('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = 0)
     @staticmethod
@@ -124,7 +124,7 @@ class Common:
             np.array in shape (nframes, column_size, row_size)
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            Common._logger.error('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = 2)
     @staticmethod
@@ -139,7 +139,7 @@ class Common:
             np.array in shape (column_size, row_size)
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            Common._logger.error('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = (0,2))
 
@@ -156,9 +156,10 @@ class Common:
         '''
 
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            self._logger.error('Data has wrong dimensions')
             return None
         if len(self.nreps_eval) != 3:
+            self._logger.error('nreps_eval must be a list of 3 integers')
             raise ValueError('nreps_eval must be a list of 3 integers')
         lower = self.nreps_eval[0]
         upper = self.nreps_eval[1]
@@ -172,11 +173,11 @@ class Common:
         if upper < lower:
             raise ValueError('Upper limit must be greater than lower limit')
 
-        print('Excluding nreps')
+        self._logger.info('Excluding nreps')
         mask = np.zeros(data.shape[2])
         mask[lower:upper:step] = 1
         mask = mask.astype(bool)
-        print(f'Excluded {np.sum(~mask)} nreps')
+        self._logger.info(f'Excluded {np.sum(~mask)} nreps')
         return data[:,:,mask,:]
 
     def exclude_mips_frames(self, data):
@@ -191,16 +192,16 @@ class Common:
             np.array in shape (nframes-X, column_size, nreps, row_size)
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            self._logger.error('Data has wrong dimensions')
             return None
-        print(f'Excluding bad frames due to MIPS, threshold: {self.thres_mips}')
+        self._logger.info(f'Excluding bad frames due to MIPS, threshold: {self.thres_mips}')
         median = np.nanmedian(data, 
                               axis = (1,2,3))[:,np.newaxis,np.newaxis,np.newaxis]
         mask = (data > median + self.thres_mips) | (data < median - self.thres_mips)
         del median
         gc.collect()
         mask = np.any(mask, axis = (1,2,3))
-        print(f'Excluded {np.sum(mask)} frames')
+        self._logger.info(f'Excluded {np.sum(mask)} frames')
         return data[~mask]
 
     def exclude_bad_frames(self, data):
@@ -216,9 +217,9 @@ class Common:
             np.array in shape (nframes-X, column_size, nreps, row_size)
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            self._logger.error('Data has wrong dimensions')
             return None
-        print('Excluding bad frames')
+        self._logger.info('Excluding bad frames')
         avg_per_frame = np.nanmean(data, axis = (1,2,3))
         np.save(os.path.join(self.step_dir, 'avg_per_frame.npy'), avg_per_frame)
         fit = fit_gauss_to_hist(avg_per_frame)
@@ -226,7 +227,7 @@ class Common:
         upper_bound = fit[1] + self.thres_bad_frames*np.abs(fit[2])
         bad_pixel_mask = (avg_per_frame < lower_bound) | (avg_per_frame > upper_bound)
         excluded_frames = np.sum(bad_pixel_mask)
-        print(f'Excluded {excluded_frames} frames')
+        self._logger.info(f'Excluded {excluded_frames} frames')
         title = f'Average signal per frame. Excluded {excluded_frames} frames'
         draw_hist_and_gauss_fit(avg_per_frame, 100, fit[0], fit[1], fit[2],
                                 'bad_frames', 
@@ -247,25 +248,25 @@ class Common:
             np.array in shape (n, nreps) with the data of the bad slopes
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            self._logger.error('Data has wrong dimensions')
             return None
-        print('Calculating bad slopes')
+        self._logger.info('Calculating bad slopes')
         slopes = np.apply_along_axis(linear_fit, axis = 2, arr = data)[:, :, 0, :]
-        print(f'Shape of slopes: {slopes.shape}')
+        self._logger.debug(f'Shape of slopes: {slopes.shape}')
         fit = fit_gauss_to_hist(slopes.flatten())
-        print(f'Fit: {fit}')
+        self._logger.debug(f'Fit: {fit}')
         lower_bound = fit[1] - self.thres_bad_slopes*np.abs(fit[2])
         upper_bound = fit[1] + self.thres_bad_slopes*np.abs(fit[2])
-        print(f'Lower bound: {lower_bound}, Upper bound: {upper_bound}')
+        self._logger.debug(f'Lower bound: {lower_bound}, Upper bound: {upper_bound}')
         bad_slopes_mask = (slopes < lower_bound) | (slopes > upper_bound)
         frame, row, column = np.where(bad_slopes_mask)
         bad_slopes_pos = np.array([frame, row, column]).T
         bad_slopes_value = slopes[bad_slopes_mask]
         #get indices of frames with bad slopes
         bad_slopes_data = data[frame.T, row.T, :, column.T]
-        print(f'Found {len(bad_slopes_pos)} bad Slopes')
-        print(f'Shape of bad slopes data: {bad_slopes_data.shape}')
-        print(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
+        self._logger.info(f'Found {len(bad_slopes_pos)} bad Slopes')
+        self._logger.debug(f'Shape of bad slopes data: {bad_slopes_data.shape}')
+        self._logger.infdebugo(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
         title = f'Slope Values for each Pixel and Frame. {len(bad_slopes_pos)} bad slopes found.'
         draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
                                 'bad_slopes', 
@@ -284,16 +285,16 @@ class Common:
             np.array in shape (nframes, column_size, nreps, row_size)
         '''
         if np.ndim(data) != 4:
-            print('Data has wrong dimensions')
+            self._logger.error('Data has wrong dimensions')
             return None
-        print('Excluding bad pixels')
+        self._logger.info('Excluding bad pixels')
         bad_pixel_mask = np.zeros(data.shape, dtype=bool)
         for index in self.bad_pixels:
             col = index[1]
             row = index[0]
             bad_pixel_mask[:,row,:,col] = True
         data[bad_pixel_mask] = np.nan
-        print(f'Excluded {len(self.bad_pixels)} pixels')
+        self._logger.info(f'Excluded {len(self.bad_pixels)} pixels')
         return data
 
     def correct_common_mode(self,data):
@@ -305,14 +306,14 @@ class Common:
         Args:
             np.array in shape (nframes, column_size, nreps, row_size)
         '''
-        print(f'Starting common mode correction at {datetime.now()}')  
+        self._logger.info(f'Starting common mode correction at {datetime.now()}')  
         # Iterate over the nframes dimension
         for i in range(data.shape[0]):
             # Calculate the median for one frame
             median_common = np.nanmedian(data[i], axis=2, keepdims=True)
             # Subtract the median from the frame in-place
             data[i] -= median_common
-        print(f'Data is corrected for common mode at {datetime.now()}')
+        self._logger.info(f'Data is corrected for common mode at {datetime.now()}')
     
     def get_bin_file_name(self):
         return os.path.basename(self.bin_file)
@@ -345,7 +346,7 @@ def get_unbinned_fit_gauss(data):
         index 5: error_sigma
     '''
     if data.ndim != 3:
-        print('Data has wrong dimensions')
+        Common._logger.error('Data has wrong dimensions')
         return
     #apply the function to every frame
     output = np.apply_along_axis(unbinned_fit_gauss_to_hist, axis = 0, arr = data)
@@ -369,7 +370,7 @@ def get_fit_gauss(data):
         index 5: error_sigma
     '''
     if data.ndim != 3:
-        print('Data has wrong dimensions')
+        Common._logger.error('Data has wrong dimensions')
         return
     #apply the function to every frame
     output = np.apply_along_axis(fit_gauss_to_hist, axis = 0, arr = data)
@@ -457,7 +458,7 @@ def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
         **kwargs: passed to sns.heatmap
     '''
     if data.ndim !=2:
-        print('Data is not 2D')
+        Common._logger.error('Data is not 2D')
         return
     plt.clf()
     # Define default values
@@ -541,10 +542,10 @@ def get_pixels_to_nan(data, indices):
         list of tuples [(frame, row, column), (frame, row, column), ...]
     '''
     if np.ndim(data) != 3:
-        print('Data has wrong dimensions')
+        Common._logger.error('Data has wrong dimensions')
         return None
     if np.ndim(indices) != 2:
-        print('Pixel positions have wrong dimensions')
+        Common._logger.error('Pixel positions have wrong dimensions')
         return None
     data_copy = data.copy()
     #TODO: Vectorize this
@@ -580,3 +581,17 @@ def load_npy_files(folder):
         arrays[name] = np.load(os.path.join(folder, file), allow_pickle=True)
 
     return arrays
+
+def sort_with_indices(arr):
+    '''
+    Sorts array in descending order and returns the indices.
+
+    Args:
+        1D np.array
+
+    Returns:
+        1D np.array
+    '''
+    indexed_arr = np.column_stack((np.arange(len(arr)), arr))
+    sorted_indices = indexed_arr[np.argsort(indexed_arr[:, 1])[::-1]][:, 0]
+    return sorted_indices.astype(int)

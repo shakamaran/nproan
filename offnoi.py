@@ -9,9 +9,12 @@ from . import common as cm
 from . import params as pm
 
 class OffNoi(cm.Common):
+
+    _logger = cm.Logger('nproan-offnoi', 'debug').get_logger()
+
     def __init__(self, prm_file):
         self.load(prm_file)
-        print('OffNoi object created')
+        self._logger.info('OffNoi object created')
 
     def load(self, prm_file):
         self.prm = pm.Params(prm_file)
@@ -40,16 +43,16 @@ class OffNoi(cm.Common):
         self.step_dir = os.path.join(self.common_dir, 
             f'offnoi_{self.nreps}reps_{self.nframes}frames')
 
-        self.logger.warning(f'Parameters loaded:')
+        self._logger.info(f'Parameters loaded:')
         self.prm.print_contents()
 
     def calculate(self):   
         #reate the directory for the data
         os.makedirs(self.common_dir, exist_ok=True)
-        self.logger.info(f'Created common directory for data: {self.common_dir}')
+        self._logger.info(f'Created common directory for data: {self.common_dir}')
         #now, create the working directory for the offnoi step
         os.makedirs(self.step_dir, exist_ok=True)
-        self.logger.info(f'Created working directory for offnoi step: {self.step_dir}')
+        self._logger.info(f'Created working directory for offnoi step: {self.step_dir}')
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
@@ -58,18 +61,18 @@ class OffNoi(cm.Common):
         #delete nreps_eval from data
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)
-            print(f'Shape of data: {data.shape}')
+            self._logger.debug(f'Shape of data: {data.shape}')
         #set values of all frames and nreps of bad pixels to nan
         if self.bad_pixels:
             data = self.set_bad_pixellist_to_nan(data)
         #deletes bad frames from data
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
-            print(f'Shape of data: {data.shape}')
+            self._logger.debug(f'Shape of data: {data.shape}')
         #deletes frames with mips above threshold from data
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
-            print(f'Shape of data: {data.shape}')
+            self._logger.debug(f'Shape of data: {data.shape}')
         #calculate offset_raw on the raw data and save it
         avg_over_frames = self.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),

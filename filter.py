@@ -11,9 +11,12 @@ from . import common as cm
 from . import params as pm
 
 class Filter(cm.Common):
+
+    _logger = cm.Logger('nproan-filter', 'debug').get_logger()
+
     def __init__(self, prm_file, offnoi_dir):
         self.load(prm_file, offnoi_dir)
-        print('Filter object created')
+        self._logger.info('Filter object created')
 
     def load(self, prm_file, offnoi_dir):
         self.prm = pm.Params(prm_file)
@@ -41,34 +44,34 @@ class Filter(cm.Common):
         self.common_dir = os.path.dirname(offnoi_dir)
         self.step_dir = None
         
-        print(f'Parameters loaded:')
+        self._logger.info(f'Parameters loaded:')
         self.prm.print_contents()
         
-        print('Checking parameters in offnoi directory')
+        self._logger.info('Checking parameters in offnoi directory')
         #look for a json file in the offnoi directory 
         if (not self.prm.same_common_params(offnoi_dir)) \
             or (not self.prm.same_offnoi_params(offnoi_dir)):
-            print('Parameters in offnoi directory do not match')
+            self._logger.error('Parameters in offnoi directory do not match')
             return
         try:
             #offset_raw is quite big. deleted after use
             self.offset_raw = cm.get_array_from_file(
                 offnoi_dir, 'offset_raw.npy')
-            print(self.offset_raw.shape)
+            self._logger.debug(self.offset_raw.shape)
             if self.offset_raw is None:
-                print('Error loading offset_raw data\n')
+                self._logger.error('Error loading offset_raw data\n')
                 return
             self.offset_fitted = cm.get_array_from_file(
                 offnoi_dir, 'offnoi_fit.npy'
             )[1]
             if self.offset_fitted is None:
-                print('Error loading fitted_offset data\n')
+                self._logger.error('Error loading fitted_offset data\n')
                 return
             self.noise_fitted = cm.get_array_from_file(
                 offnoi_dir, 'offnoi_fit.npy'
             )[2]
             if self.noise_fitted is None:
-                print('Error loading fitted_noise data\n')
+                self._logger.error('Error loading fitted_noise data\n')
                 return
             self.offnoi_dir = offnoi_dir
             self.common_dir = os.path.dirname(offnoi_dir)
@@ -76,14 +79,14 @@ class Filter(cm.Common):
             self.step_dir = os.path.join(
                 self.common_dir,f'filter_{self.thres_event}_threshold'
             )
-            print(self.step_dir)
+            self._logger.debug(self.step_dir)
         except:
             raise ValueError('Error loading offnoi data\n')
 
     def calculate(self):
         #create the working directory for the filter step
         os.makedirs(self.step_dir, exist_ok=True)
-        print(f'Created directory for filter step: {self.step_dir}')
+        self._logger.info(f'Created directory for filter step: {self.step_dir}')
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
@@ -91,16 +94,16 @@ class Filter(cm.Common):
         gc.collect()
         if self.nreps_eval:
             data = self.exclude_nreps_eval(data)
-            print(f'Shape of data: {data.shape}')
+            self._logger.debug(f'Shape of data: {data.shape}')
         #omit bad pixels and mips frames
         if self.bad_pixels:
             data = self.set_bad_pixellist_to_nan(data)
         if self.thres_bad_frames != 0:
             data = self.exclude_bad_frames(data)
-            print(f'Shape of data: {data.shape}')
+            self._logger.debug(f'Shape of data: {data.shape}')
         if self.thres_mips != 0:
             data = self.exclude_mips_frames(data)
-            print(f'Shape of data: {data.shape}')
+            self._logger.debug(f'Shape of data: {data.shape}')
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
@@ -128,12 +131,12 @@ class Filter(cm.Common):
             np.save(os.path.join(self.step_dir, 'bad_slopes_value.npy'), bad_slopes_value)
                 
     def calc_event_map(self, avg_over_nreps):
-        print('Finding events')
+        self._logger.info('Finding events')
         threshold_map = self.noise_fitted * self.thres_event
         events = avg_over_nreps > threshold_map[np.newaxis,:,:]
         signals = avg_over_nreps[events]
         indices = np.transpose(np.where(events))
-        print(f'{signals.shape[0]} events found')
+        self._logger.info(f'{signals.shape[0]} events found')
         event_array = np.concatenate(
             (indices, signals[:,np.newaxis]),
               axis = 1
