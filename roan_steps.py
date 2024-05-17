@@ -9,6 +9,7 @@ import analysis_funcs as af
 import analysis as an
 import params as pm
 import fitting as fit
+
 class OffNoi():
 
     _logger = logger.Logger('nproan-offnoi', 'debug').get_logger()

@@ -49,9 +49,9 @@ def get_avg_over_frames_and_nreps(data):
         return None
     return np.nanmean(data, axis = (0,2))
 
-def get_pixels_to_nan(data, indices):
+def set_pixels_to_nan(data, indices):
     '''
-    copies the data array, sets all pixels to nan
+    sets all pixels in indices in the data array to nan and returns a copy.
     
     Args:
         np.array in shape (nframes, column_size, row_size)
@@ -85,9 +85,21 @@ def get_rolling_average(data, window_size):
     return np.convolve(data, weights, mode='valid')
 
 def load_npy_files(folder):
+    '''
+    Looks for .npy arrays in folder and returns them all as a
+    dictionary with numpy arrays as values
+
+    Args:
+        folder: folder path
+
+    Returns:
+        dictionary of np.arrays
+    '''
     # Get a list of all .npy files in the folder
     files = [f for f in os.listdir(folder) if f.endswith('.npy')]
-
+    if len(files) == 0:
+        print(f'No .npy files found in folder {folder}')
+        return None
     # Load each file into a numpy array and store it in a dictionary
     arrays = {}
     for file in files:
@@ -95,7 +107,6 @@ def load_npy_files(folder):
         name = os.path.splitext(file)[0]
         # Load the file and store it in the dictionary
         arrays[name] = np.load(os.path.join(folder, file), allow_pickle=True)
-
     return arrays
 
 def sort_with_indices(arr):

@@ -4,6 +4,8 @@ Prio:
     that just calculates all
 - bad slopes should be ignored in the fitting in the offnoi step
 - add infos to plots
+- documentation of functions
+- just load the prm dictionary in the roan_steps classes, dont define all those class variables.
 
 -upload whole package to github
 -check if nproanPackage needs to be uploaded
@@ -69,25 +71,3 @@ My current philosophy for doing stuff:
 - provide some functions that do data manipulation inplace
 - data that is loaded from file in the filter or gain step is stored in a class 
     variable
-
-
-
-Parallelization using numba:
-
-@nb.jit(nopython=True, parallel=True)
-def nanmedian_nb(data):
-    #axis = 3
-    frames = data.shape[0]
-    rows = data.shape[1]
-    nreps = data.shape[2]
-    output = np.zeros((frames, rows, nreps, 1))
-    for frame in nb.prange(frames):
-        for row in nb.prange(rows):
-            for nrep in nb.prange(nreps):
-                median = np.nanmedian(data[frame,row,nrep,:])
-                output[frame,row,nrep,0] = median
-    return output
-
-@nb.jit(nopython=True)
-def common_nb(data):
-    return data - nanmedian_nb(data)

@@ -88,12 +88,29 @@ def get_data(bin_file, column_size, row_size, key_ints, nreps, nframes):
             frames_here += frames_inc
             gc.collect()
 
+def get_dummy_data(column_size, row_size, nreps, nframes):
+    '''
+    Returns random values for tests.
+    Args:
+        bin_file: path to the binary file
+        column_size: number of columns in the data
+        row_size: number of rows in the data
+        key_ints: number of key ints in the data
+        nreps: number of repetitions in the data
+        nframes: number of frames to read from the data
+        
+    Returns:
+        np.array in shape (nframes, column_size, nreps, row_size)
+    '''
+    return np.random.rand((nframes, row_size, nreps, column_size))
+
 def exclude_nreps_eval(data, nreps_eval):
     '''
     Deletes nreps from data that are not in the list nreps_eval.
     nreps_eval is a list of 3 integers: [lower, upper, step]
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array in shape (nframes, column_size, nreps, row_size)
+        nreps_eval: list of 3 ints
     Returns:
         np.array in shape (nframes, column_size, nreps-X, row_size)
     '''
@@ -127,7 +144,8 @@ def exclude_mips_frames(data, thres_mips):
     Calculates the median of each frame and deletes frames that are
     above or below the median by a certain threshold.
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array in shape (nframes, column_size, nreps, row_size)
+        thres_mips: absolute threshold in adu
     Returns:
         np.array in shape (nframes-X, column_size, nreps, row_size)
     '''
@@ -145,14 +163,16 @@ def exclude_mips_frames(data, thres_mips):
     _logger.info(f'Excluded {np.sum(mask)} frames')
     return data[~mask]
 
-def exclude_bad_frames(data, thres_bad_frames, step_dir):
+def exclude_bad_frames(data, thres_bad_frames, step_dir=None):
     '''
     Calculates the average of each frame and excludes frames that are
     above or below the fitted mean by a certain threshold.
     It saves a .png file in the step directory.
 
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array in shape (nframes, column_size, nreps, row_size)
+        thres_bad_frames: used with the fitted sigma do exclude frames
+        step_dir (optional): directory in which plot is saved
 
     Returns:
         np.array in shape (nframes-X, column_size, nreps, row_size)
@@ -175,14 +195,16 @@ def exclude_bad_frames(data, thres_bad_frames, step_dir):
                             save_to = step_dir)
     return data[~bad_pixel_mask]
 
-def get_bad_slopes(data, thres_bad_slopes, step_dir):
+def get_bad_slopes(data, thres_bad_slopes, step_dir=None):
     '''
     Calculates the slope over nreps for every pixel and frame.
     It then fits a gaussian to the histogram of the slopes, and determines
     the bad slopes by a threshold.
     
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array in shape (nframes, column_size, nreps, row_size)
+        thres_bad_slopes: used with the fitted sigma to determine bad slopes
+        step_dir (optional): directory in which plot is saved
         
     Returns:
         np.array in shape (n, 3) with the position [frame, row, column]
@@ -220,7 +242,8 @@ def set_bad_pixellist_to_nan(data, bad_pixels):
     Sets all ignored Pixels in data to NaN. List of pixels is from the
     parameter file. [(row,col), (row,col), ...]
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array in shape (nframes, column_size, nreps, row_size)
+        bad_pixels: list of tuples (row,col)
     
     Returns:
         np.array in shape (nframes, column_size, nreps, row_size)

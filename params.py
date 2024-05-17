@@ -2,11 +2,11 @@ import os
 import fnmatch
 import json
 
-from . import common as cm
+import logger
 
 class Params:
 
-    _logger = cm.Logger('nproan-params', 'debug').get_logger()
+    _logger = logger.Logger('nproan-params', 'debug').get_logger()
 
     '''
     To change/add parameters, edit/add them here.
