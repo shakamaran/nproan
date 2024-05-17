@@ -5,7 +5,7 @@ import numpy as np
 
 import logger
 
-_logger = logger.get_logger(__name__, 'info')
+_logger = logger.Logger(__name__, 'info').get_logger()
 
 def get_avg_over_frames(data):
     '''

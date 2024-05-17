@@ -11,7 +11,6 @@ import params as pm
 import fitting as fit
 
 class OffNoi():
-
     _logger = logger.Logger('nproan-offnoi', 'debug').get_logger()
 
     def __init__(self, prm_file):
@@ -39,7 +38,7 @@ class OffNoi():
 
         #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        filename = self.get_bin_file_name()[:-4]
+        filename = os.path.basename(self.bin_file)[:-4]
         self.common_dir = os.path.join(
             self.results_dir, timestamp + '_' + filename)
         self.step_dir = os.path.join(self.common_dir, 
@@ -49,7 +48,7 @@ class OffNoi():
         self.prm.print_contents()
 
     def calculate(self):   
-        #reate the directory for the data
+        #create the directory for the data
         os.makedirs(self.common_dir, exist_ok=True)
         self._logger.info(f'Created common directory for data: {self.common_dir}')
         #now, create the working directory for the offnoi step
@@ -58,7 +57,7 @@ class OffNoi():
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
-        data = self.get_data()
+        data = an.get_data(self.bin_file, self.column_size, self.row_size, self.key_ints, self.nreps, self.nframes)
         gc.collect()
         #delete nreps_eval from data
         if self.nreps_eval:

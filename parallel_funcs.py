@@ -1,7 +1,17 @@
 import numpy as np
 import numba as nb
 
-#TODO: write seperate functions for keepdims and no keepdims
+import logger
+
+_logger = logger.Logger(__name__, 'info').get_logger()
+
+'''
+Add parallized versions here.
+Add nanmedian and nanmean for now.
+Test if its good to always use parallel functions.
+Write them only for keepdims=false and use np.newaxis if neccesary.
+move to analysis funcs when they work.
+'''
 @nb.jit(nopython=True, parallel=True)
 def nanmedian_nb(data, axis, keepdims=False):
     #keepdims=True

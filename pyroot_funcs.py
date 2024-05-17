@@ -1,6 +1,10 @@
 from ROOT import RDataFrame
 import numpy as np
 
+import logger
+
+_logger = logger.Logger(__name__, 'info').get_logger()
+
 def get_tree_branch_as_np(tree_name, root_file, branch_names, filter_string=None):
     '''
     Loads a TTree from a .root File, applies a filter and returns defined 

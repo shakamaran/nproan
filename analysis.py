@@ -7,7 +7,7 @@ import logger
 import fitting
 import display
 
-_logger = logger.get_logger(__name__, 'info')
+_logger = logger.Logger(__name__, 'info').get_logger()
 
 def get_data(bin_file, column_size, row_size, key_ints, nreps, nframes):
         '''
@@ -92,7 +92,6 @@ def get_dummy_data(column_size, row_size, nreps, nframes):
     '''
     Returns random values for tests.
     Args:
-        bin_file: path to the binary file
         column_size: number of columns in the data
         row_size: number of rows in the data
         key_ints: number of key ints in the data
@@ -102,7 +101,7 @@ def get_dummy_data(column_size, row_size, nreps, nframes):
     Returns:
         np.array in shape (nframes, column_size, nreps, row_size)
     '''
-    return np.random.rand((nframes, row_size, nreps, column_size))
+    return np.random.rand(nframes, row_size, nreps, column_size)
 
 def exclude_nreps_eval(data, nreps_eval):
     '''

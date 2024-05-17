@@ -6,7 +6,7 @@ import logger
 
 class Params:
 
-    _logger = logger.Logger('nproan-params', 'debug').get_logger()
+    _logger = logger.Logger(__name__, 'info').get_logger()
 
     '''
     To change/add parameters, edit/add them here.

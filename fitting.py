@@ -6,7 +6,7 @@ from iminuit import cost, Minuit
 
 import logger
 
-_logger = logger.get_logger(__name__, 'info')
+_logger = logger.Logger(__name__, 'info').get_logger()
 
 def fit_gauss_to_hist(data_to_fit):
     ''' 

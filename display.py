@@ -5,7 +5,7 @@ import numpy as np
 import logger
 import fitting
 
-_logger = logger.get_logger(__name__, 'info')
+_logger = logger.Logger(__name__, 'info').get_logger()
 
 def draw_hist(data, file_name="histogram", save_to=None, **kwargs):
     '''
