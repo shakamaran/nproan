@@ -3,6 +3,7 @@ import seaborn as sns
 import numpy as np
 
 import logger
+import fitting
 
 _logger = logger.get_logger(__name__, 'info')
 
@@ -83,7 +84,7 @@ def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, file_name=None, 
     hist, hist_bins = np.histogram(data, bins, range=(np.nanmin(data), np.nanmax(data)), density=True)
     bin_centers = (hist_bins[:-1] + hist_bins[1:]) / 2
     plt.hist(data, bins=hist_bins, density=True, alpha=0.5)
-    plt.plot(bin_centers, gaussian(bin_centers, amplitude, mean, sigma), 'r-')
+    plt.plot(bin_centers, fitting.gaussian(bin_centers, amplitude, mean, sigma), 'r-')
     plt.title(f'Fitted parameters:\nMean: {mean:.2f}\nSigma: {sigma:.2f}')
     plt.xlabel('Value')
     plt.ylabel('Frequency')

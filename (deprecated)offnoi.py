@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 from . import common as cm
 from . import params as pm
 
-class OffNoi(cm.Common):
+class OffNoi():
 
     _logger = cm.Logger('nproan-offnoi', 'debug').get_logger()
 

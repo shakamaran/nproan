@@ -1,8 +1,7 @@
 import gc
+import os
 
-from scipy.optimize import curve_fit
 import numpy as np
-from iminuit import cost, Minuit
 
 import logger
 
@@ -50,105 +49,68 @@ def get_avg_over_frames_and_nreps(data):
         return None
     return np.nanmean(data, axis = (0,2))
 
-def fit_gauss_to_hist(data_to_fit):
-    ''' 
-    fits a gaussian to a histogram of data_to_fit
+def get_pixels_to_nan(data, indices):
+    '''
+    copies the data array, sets all pixels to nan
+    
+    Args:
+        np.array in shape (nframes, column_size, row_size)
+        list of tuples [(frame, row, column), (frame, row, column), ...]
+    '''
+    if np.ndim(data) != 3:
+        _logger.error('Data has wrong dimensions')
+        return None
+    if np.ndim(indices) != 2:
+        _logger.error('Pixel positions have wrong dimensions')
+        return None
+    data_copy = data.copy()
+    #TODO: Vectorize this
+    for entry in indices:
+        data_copy[entry[0], entry[1], entry[2]] = np.nan
+    return data_copy
+
+def get_rolling_average(data, window_size):
+    '''
+    Calculates a rolling average over window_size
+    
+    Args:
+        1D np.array
+        window_size: int
+    
+    Returns:
+        1D np.array
+    '''
+    weights = np.repeat(1.0, window_size) / window_size
+    # Use 'valid' mode to ensure that output has the same length as input
+    return np.convolve(data, weights, mode='valid')
+
+def load_npy_files(folder):
+    # Get a list of all .npy files in the folder
+    files = [f for f in os.listdir(folder) if f.endswith('.npy')]
+
+    # Load each file into a numpy array and store it in a dictionary
+    arrays = {}
+    for file in files:
+        # Remove the .npy extension from the filename
+        name = os.path.splitext(file)[0]
+        # Load the file and store it in the dictionary
+        arrays[name] = np.load(os.path.join(folder, file), allow_pickle=True)
+
+    return arrays
+
+def sort_with_indices(arr):
+    '''
+    Sorts array in descending order and returns the indices.
 
     Args:
         1D np.array
-    
-    Returns:
-        np.array[amplitude, mean, sigma, error_amplitude, error_mean, error_sigma]
-    '''
-    guess = [1, np.nanmedian(data_to_fit), np.nanstd(data_to_fit)]
-    try:
-        hist, bins = np.histogram(data_to_fit, bins=100, range=(np.nanmin(data_to_fit), np.nanmax(data_to_fit)), density=True)
-        bin_centers = (bins[:-1] + bins[1:]) / 2
-        params, covar = curve_fit(gaussian, bin_centers, hist, p0=guess)
-        return np.array([params[0],
-                         params[1], 
-                         np.abs(params[2]),
-                         np.sqrt(np.diag(covar))[0],
-                         np.sqrt(np.diag(covar))[1], 
-                         np.sqrt(np.diag(covar))[2]])
-    except:
-        return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-    
-def unbinned_fit_gauss_to_hist(data_to_fit):
-    '''
-    fits a gaussian to a histogram of data_to_fit
 
-    Args:
+    Returns:
         1D np.array
-
-    Returns:
-        np.array[amplitude, mean, sigma, error_mean, error_sigma]
     '''
-    #TODO: this doesnt seem to work: test this!
-    c = cost.UnbinnedNLL(data_to_fit, gaussian)
-    m = Minuit(c, 
-               a1=1, 
-               mu1=np.nanmedian(data_to_fit), 
-               sigma1=np.nanstd(data_to_fit))
-    m.limits['a1'] = (0, 100)
-    m.limits['mu1'] = (np.nanmin(data_to_fit), np.nanmax(data_to_fit))
-    m.limits['sigma1'] = (0, 100)
-    m.migrad()
-    if not m.valid:
-        return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-    return np.array([m.values['a1'],
-                     m.values['mu1'],
-                     np.abs(m.values['sigma1']),
-                     m.errors['a1'],
-                     m.errors['mu1'],
-                     m.errors['sigma1']])
+    indexed_arr = np.column_stack((np.arange(len(arr)), arr))
+    sorted_indices = indexed_arr[np.argsort(indexed_arr[:, 1])[::-1]][:, 0]
+    return sorted_indices.astype(int)
 
-def get_fit_gauss(data):
-    ''' 
-    fits a gaussian to a histogram of data_to_fit
-    using the scipy curve_fit method
-
-    Args:
-        np.array in shape (nframes, column_size, row_size)
-
-    Returns:
-        np.array in shape (6, rows, columns)
-        index 0: amplitude
-        index 1: mean
-        index 2: sigma
-        index 3: error_amplitude
-        index 4: error_mean
-        index 5: error_sigma
-    '''
-    if data.ndim != 3:
-        _logger.error('Data has wrong dimensions')
-        return
-    #apply the function to every frame
-    output = np.apply_along_axis(fit_gauss_to_hist, axis = 0, arr = data)
-    return output
-
-def get_unbinned_fit_gauss(data):
-    '''
-    fits a gaussian to a histogram of data
-    using the unbinned method in minuit
-    returns a np.array in shape (6, rows, columns)
-
-    Args:
-        np.array in shape (nframes, column_size, row_size)
-
-    Returns:
-        np.array in shape (6, rows, columns)
-        index 0: amplitude
-        index 1: mean
-        index 2: sigma
-        index 3: error_amplitude
-        index 4: error_mean
-        index 5: error_sigma
-    '''
-    if data.ndim != 3:
-        _logger.error('Data has wrong dimensions')
-        return
-    #apply the function to every frame
-    output = np.apply_along_axis(unbinned_fit_gauss_to_hist, axis = 0, arr = data)
-    return output
-
+def get_array_from_file(folder, filename):
+    return np.load(os.path.join(folder, filename), allow_pickle=True)

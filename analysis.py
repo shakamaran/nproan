@@ -1,8 +1,11 @@
 import gc
 
 import numpy as np
+from scipy.optimize import curve_fit
 
 import logger
+import fitting
+import display
 
 _logger = logger.get_logger(__name__, 'info')
 
@@ -160,14 +163,14 @@ def exclude_bad_frames(data, thres_bad_frames, step_dir):
         return None
     _logger.info('Excluding bad frames')
     avg_per_frame = np.nanmean(data, axis = (1,2,3))
-    fit = fit_gauss_to_hist(avg_per_frame)
+    fit = fitting.fit_gauss_to_hist(avg_per_frame)
     lower_bound = fit[1] - thres_bad_frames*np.abs(fit[2])
     upper_bound = fit[1] + thres_bad_frames*np.abs(fit[2])
     bad_pixel_mask = (avg_per_frame < lower_bound) | (avg_per_frame > upper_bound)
     excluded_frames = np.sum(bad_pixel_mask)
     _logger.info(f'Excluded {excluded_frames} frames')
     title = f'Average signal per frame. Excluded {excluded_frames} frames'
-    draw_hist_and_gauss_fit(avg_per_frame, 100, fit[0], fit[1], fit[2],
+    display.draw_hist_and_gauss_fit(avg_per_frame, 100, fit[0], fit[1], fit[2],
                             'bad_frames', 
                             save_to = step_dir)
     return data[~bad_pixel_mask]
@@ -190,9 +193,9 @@ def get_bad_slopes(data, thres_bad_slopes, step_dir):
         _logger.error('Data has wrong dimensions')
         return None
     _logger.info('Calculating bad slopes')
-    slopes = np.apply_along_axis(linear_fit, axis = 2, arr = data)[:, :, 0, :]
+    slopes = np.apply_along_axis(fitting.linear_fit, axis = 2, arr = data)[:, :, 0, :]
     _logger.debug(f'Shape of slopes: {slopes.shape}')
-    fit = fit_gauss_to_hist(slopes.flatten())
+    fit = fitting.fit_gauss_to_hist(slopes.flatten())
     _logger.debug(f'Fit: {fit}')
     lower_bound = fit[1] - thres_bad_slopes*np.abs(fit[2])
     upper_bound = fit[1] + thres_bad_slopes*np.abs(fit[2])
@@ -207,7 +210,7 @@ def get_bad_slopes(data, thres_bad_slopes, step_dir):
     _logger.debug(f'Shape of bad slopes data: {bad_slopes_data.shape}')
     _logger.debug(f'Shape of bad slopes pos: {bad_slopes_pos.shape}')
     title = f'Slope Values for each Pixel and Frame. {len(bad_slopes_pos)} bad slopes found.'
-    draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
+    display.draw_hist_and_gauss_fit(slopes.flatten(), 100, fit[0], fit[1], fit[2],
                             'bad_slopes', 
                             save_to = step_dir)
     return bad_slopes_pos, bad_slopes_data, bad_slopes_value
@@ -235,7 +238,7 @@ def set_bad_pixellist_to_nan(data, bad_pixels):
     _logger.info(f'Excluded {len(bad_pixels)} pixels')
     return data
 
-def correct_common_mode(self,data):
+def correct_common_mode(data):
     '''
     Calculates the median of euch row in data, and substracts it from 
     the row.
@@ -251,3 +254,77 @@ def correct_common_mode(self,data):
         # Subtract the median from the frame in-place
         data[i] -= median_common
     _logger.info('Data is corrected for common mode.')
+
+def calc_event_map(avg_over_nreps, noise_fitted, thres_event):
+    _logger.info('Finding events')
+    threshold_map = noise_fitted * thres_event
+    events = avg_over_nreps > threshold_map[np.newaxis,:,:]
+    signals = avg_over_nreps[events]
+    indices = np.transpose(np.where(events))
+    _logger.info(f'{signals.shape[0]} events found')
+    event_array = np.concatenate(
+        (indices, signals[:,np.newaxis]),
+          axis = 1
+        )
+    event_map = np.zeros((64,64), dtype = object)
+    event_map.fill([])
+    for entry in event_array:
+        row = int(entry[1])
+        column = int(entry[2])
+        signal = entry[3]
+        event_map[row][column] = np.append(
+            event_map[row][column], signal
+            )
+    return event_map
+
+def get_sum_of_event_signals(self, event_map, row_size, column_size):
+    sum_of_events = np.zeros((row_size,column_size))
+    for row in range(row_size):
+        for column in range(column_size):
+            sum_of_events[row][column] = sum(event_map[row][column])
+    return sum_of_events
+
+def get_sum_of_event_counts(event_map, row_size, column_size):
+    sum_of_events = np.zeros((row_size,column_size))
+    for row in range(row_size):
+        for column in range(column_size):
+            sum_of_events[row][column] = len(event_map[row][column])
+    return sum_of_events
+
+def get_gain_fit(self, event_map, row_size, column_size, min_signals):
+    mean = np.full((row_size, column_size), np.nan)
+    sigma = np.full((row_size, column_size), np.nan)
+    mean_error = np.full((row_size, column_size), np.nan)
+    sigma_error = np.full((row_size, column_size), np.nan)
+
+    def fit_hist(data):
+
+        def gaussian(x, a1, mu1, sigma1):
+            return a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2))
+        try:
+            hist, bins = np.histogram(data, bins=10, range=(np.nanmin(data), np.nanmax(data)), density=True)
+            bin_centers = (bins[:-1] + bins[1:]) / 2
+            params, covar = curve_fit(gaussian, 
+                                      bin_centers, 
+                                      hist, 
+                                      p0=[1,bins[np.argmax(hist)],1])
+            return (params[1], abs(params[2]), 
+                    np.sqrt(np.diag(covar))[1], 
+                    np.sqrt(np.diag(covar))[2])
+        except:
+            return (np.nan,np.nan,np.nan,np.nan)
+    
+    count_too_few = 0
+    for i in range(event_map.shape[0]):
+        for j in range(event_map.shape[1]):
+            signals = event_map[i,j]
+            if len(signals) >= min_signals:
+                params = fit_hist(signals)
+                mean[i,j] = params[0]
+                sigma[i,j] = params[1]
+                mean_error[i,j] = params[2]
+                sigma_error[i,j] = params[3]
+            else:
+                count_too_few += 1
+    _logger.info(f'{count_too_few} pixels have less than {min_signals} signals')
+    return mean, sigma, mean_error, sigma_error
