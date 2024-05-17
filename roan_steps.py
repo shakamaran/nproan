@@ -8,6 +8,7 @@ import logger
 import analysis_funcs as af
 import analysis as an
 import params as pm
+import fitting as fit
 class OffNoi():
 
     _logger = logger.Logger('nproan-offnoi', 'debug').get_logger()
@@ -92,8 +93,8 @@ class OffNoi():
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
                 avg_over_nreps)
         #calculate fitted offset and noise and save it (including fit errors)
-        fit_unbinned = cm.get_unbinned_fit_gauss(avg_over_nreps)
-        fit_curve_fit = cm.get_fit_gauss(avg_over_nreps)
+        fit_unbinned = fit.get_unbinned_fit_gauss(avg_over_nreps)
+        fit_curve_fit = fit.get_fit_gauss(avg_over_nreps)
         np.save(os.path.join(self.step_dir, 'offnoi_fit_unbinned.npy'), fit_unbinned)
         np.save(os.path.join(self.step_dir, 'offnoi_fit.npy'), fit_curve_fit)
         if self.thres_bad_slopes != 0:
@@ -147,19 +148,19 @@ class Filter():
             return
         try:
             #offset_raw is quite big. deleted after use
-            self.offset_raw = cm.get_array_from_file(
+            self.offset_raw = af.get_array_from_file(
                 offnoi_dir, 'offset_raw.npy')
             self._logger.debug(self.offset_raw.shape)
             if self.offset_raw is None:
                 self._logger.error('Error loading offset_raw data\n')
                 return
-            self.offset_fitted = cm.get_array_from_file(
+            self.offset_fitted = af.get_array_from_file(
                 offnoi_dir, 'offnoi_fit.npy'
             )[1]
             if self.offset_fitted is None:
                 self._logger.error('Error loading fitted_offset data\n')
                 return
-            self.noise_fitted = cm.get_array_from_file(
+            self.noise_fitted = af.get_array_from_file(
                 offnoi_dir, 'offnoi_fit.npy'
             )[2]
             if self.noise_fitted is None:
@@ -256,7 +257,7 @@ class Gain():
             self._logger.error('Parameters in filter directory do not match')
             return
         try:
-            self.event_map = cm.get_array_from_file(
+            self.event_map = af.get_array_from_file(
                 filter_dir, 'event_map.npy')
             #set the directory where the filter data is stored
             self.filter_dir = filter_dir

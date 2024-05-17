@@ -1,5 +1,7 @@
 TODO:
 Prio:
+- make roan_steps work; thre step classes should work. and write one function
+    that just calculates all
 - bad slopes should be ignored in the fitting in the offnoi step
 - add infos to plots
 
