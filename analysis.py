@@ -299,7 +299,7 @@ def calc_event_map(avg_over_nreps, noise_fitted, thres_event):
             )
     return event_map
 
-def get_sum_of_event_signals(self, event_map, row_size, column_size):
+def get_sum_of_event_signals(event_map, row_size, column_size):
     sum_of_events = np.zeros((row_size,column_size))
     for row in range(row_size):
         for column in range(column_size):
@@ -313,7 +313,7 @@ def get_sum_of_event_counts(event_map, row_size, column_size):
             sum_of_events[row][column] = len(event_map[row][column])
     return sum_of_events
 
-def get_gain_fit(self, event_map, row_size, column_size, min_signals):
+def get_gain_fit(event_map, row_size, column_size, min_signals):
     mean = np.full((row_size, column_size), np.nan)
     sigma = np.full((row_size, column_size), np.nan)
     mean_error = np.full((row_size, column_size), np.nan)

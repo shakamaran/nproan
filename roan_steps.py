@@ -19,22 +19,22 @@ class OffNoi():
 
     def load(self, prm_file):
         self.prm = pm.Params(prm_file)
-        parameters = self.prm.get_dict()
+        
         #common parameters
-        self.results_dir = parameters['common_results_dir']
-        self.column_size = parameters['common_column_size']
-        self.row_size = parameters['common_row_size']
-        self.key_ints = parameters['common_key_ints']
-        self.bad_pixels = parameters['common_bad_pixels']
+        self.results_dir = self.prm['common_results_dir']
+        self.column_size = self.prm['common_column_size']
+        self.row_size = self.prm['common_row_size']
+        self.key_ints = self.prm['common_key_ints']
+        self.bad_pixels = self.prm['common_bad_pixels']
         #offnoi parameters
-        self.bin_file = parameters['offnoi_bin_file']
-        self.nreps = parameters['offnoi_nreps']
-        self.nframes = parameters['offnoi_nframes']
-        self.nreps_eval = parameters['offnoi_nreps_eval']
-        self.comm_mode = parameters['offnoi_comm_mode']
-        self.thres_mips = parameters['offnoi_thres_mips']
-        self.thres_bad_frames = parameters['offnoi_thres_bad_frames']
-        self.thres_bad_slopes = parameters['offnoi_thres_bad_slopes']
+        self.bin_file = self.prm['offnoi_bin_file']
+        self.nreps = self.prm['offnoi_nreps']
+        self.nframes = self.prm['offnoi_nframes']
+        self.nreps_eval = self.prm['offnoi_nreps_eval']
+        self.comm_mode = self.prm['offnoi_comm_mode']
+        self.thres_mips = self.prm['offnoi_thres_mips']
+        self.thres_bad_frames = self.prm['offnoi_thres_bad_frames']
+        self.thres_bad_slopes = self.prm['offnoi_thres_bad_slopes']
 
         #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -61,25 +61,25 @@ class OffNoi():
         gc.collect()
         #delete nreps_eval from data
         if self.nreps_eval:
-            data = self.exclude_nreps_eval(data)
+            data = an.exclude_nreps_eval(data, self.nreps_eval)
             self._logger.debug(f'Shape of data: {data.shape}')
         #set values of all frames and nreps of bad pixels to nan
         if self.bad_pixels:
-            data = self.set_bad_pixellist_to_nan(data)
+            data = an.set_bad_pixellist_to_nan(data, self.bad_pixels)
         #deletes bad frames from data
         if self.thres_bad_frames != 0:
-            data = self.exclude_bad_frames(data)
+            data = an.exclude_bad_frames(data, self.thres_bad_frames, self.step_dir)
             self._logger.debug(f'Shape of data: {data.shape}')
         #deletes frames with mips above threshold from data
         if self.thres_mips != 0:
-            data = self.exclude_mips_frames(data)
+            data = an.exclude_mips_frames(data, self.thres_mips)
             self._logger.debug(f'Shape of data: {data.shape}')
         #calculate offset_raw on the raw data and save it
-        avg_over_frames = self.get_avg_over_frames(data)
+        avg_over_frames = af.get_avg_over_frames(data)
         np.save(os.path.join(self.step_dir, 'offset_raw.npy'),
                 avg_over_frames)
         #calculate offset and save it
-        avg_over_frames_and_nreps = self.get_avg_over_frames_and_nreps(data)
+        avg_over_frames_and_nreps = af.get_avg_over_frames_and_nreps(data)
         np.save(os.path.join(self.step_dir, 'offset.npy'),
                 avg_over_frames_and_nreps)
         #offset the data and correct for common mode if necessary
@@ -87,9 +87,9 @@ class OffNoi():
         del avg_over_frames
         gc.collect()
         if self.comm_mode is True:
-            self.correct_common_mode(data)
+            an.correct_common_mode(data)
         #calculate rndr signals and save it
-        avg_over_nreps = self.get_avg_over_nreps(data)
+        avg_over_nreps = af.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
                 avg_over_nreps)
         #calculate fitted offset and noise and save it (including fit errors)
@@ -98,7 +98,7 @@ class OffNoi():
         np.save(os.path.join(self.step_dir, 'offnoi_fit_unbinned.npy'), fit_unbinned)
         np.save(os.path.join(self.step_dir, 'offnoi_fit.npy'), fit_curve_fit)
         if self.thres_bad_slopes != 0:
-            bad_slopes_pos, bad_slopes_data, bad_slopes_value = self.get_bad_slopes(data)
+            bad_slopes_pos, bad_slopes_data, bad_slopes_value = an.get_bad_slopes(data, self.thres_bad_slopes, self.step_dir)
             np.save(os.path.join(self.step_dir, 'bad_slopes_pos.npy'), bad_slopes_pos)
             np.save(os.path.join(self.step_dir, 'bad_slopes_data.npy'), bad_slopes_data)
             np.save(os.path.join(self.step_dir, 'bad_slopes_value.npy'), bad_slopes_value)
@@ -113,24 +113,23 @@ class Filter():
 
     def load(self, prm_file, offnoi_dir):
         self.prm = pm.Params(prm_file)
-        parameters = self.prm.get_dict()
         #common parameters
-        self.results_dir = parameters['common_results_dir']
-        self.column_size = parameters['common_column_size']
-        self.row_size = parameters['common_row_size']
-        self.key_ints = parameters['common_key_ints']
-        self.bad_pixels = parameters['common_bad_pixels']
+        self.results_dir = self.prm['common_results_dir']
+        self.column_size = self.prm['common_column_size']
+        self.row_size = self.prm['common_row_size']
+        self.key_ints = self.prm['common_key_ints']
+        self.bad_pixels = self.prm['common_bad_pixels']
         #filter parameters
-        self.bin_file = parameters['filter_bin_file']
-        self.nreps = parameters['filter_nreps']
-        self.nframes = parameters['filter_nframes']
-        self.nreps_eval = parameters['filter_nreps_eval']
-        self.comm_mode = parameters['filter_comm_mode']
-        self.thres_mips = parameters['filter_thres_mips']
-        self.thres_event = parameters['filter_thres_event']
-        self.use_fitted_offset = parameters['filter_use_fitted_offset']
-        self.thres_bad_frames = parameters['filter_thres_bad_frames']
-        self.thres_bad_slopes = parameters['filter_thres_bad_slopes']
+        self.bin_file = self.prm['filter_bin_file']
+        self.nreps = self.prm['filter_nreps']
+        self.nframes = self.prm['filter_nframes']
+        self.nreps_eval = self.prm['filter_nreps_eval']
+        self.comm_mode = self.prm['filter_comm_mode']
+        self.thres_mips = self.prm['filter_thres_mips']
+        self.thres_event = self.prm['filter_thres_event']
+        self.use_fitted_offset = self.prm['filter_use_fitted_offset']
+        self.thres_bad_frames = self.prm['filter_thres_bad_frames']
+        self.thres_bad_slopes = self.prm['filter_thres_bad_slopes']
 
         #directories
         #set self.common_dir to the parent directory of offnoi_dir
@@ -183,42 +182,42 @@ class Filter():
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
 
-        data = self.get_data()
+        data = an.get_data(self.bin_file, self.column_size, self.row_size, self.key_ints, self.nreps, self.nframes)
         gc.collect()
         if self.nreps_eval:
-            data = self.exclude_nreps_eval(data)
+            data = an.exclude_nreps_eval(data, self.nreps_eval)
             self._logger.debug(f'Shape of data: {data.shape}')
         #omit bad pixels and mips frames
         if self.bad_pixels:
-            data = self.set_bad_pixellist_to_nan(data)
+            data = an.set_bad_pixellist_to_nan(data, self.bad_pixels)
         if self.thres_bad_frames != 0:
-            data = self.exclude_bad_frames(data)
+            data = an.exclude_bad_frames(data, self.thres_bad_frames, self.step_dir)
             self._logger.debug(f'Shape of data: {data.shape}')
         if self.thres_mips != 0:
-            data = self.exclude_mips_frames(data)
+            data = an.exclude_mips_frames(data, self.thres_mips)
             self._logger.debug(f'Shape of data: {data.shape}')
         #offset the data and correct for common mode if necessary
         data = data - self.offset_raw[np.newaxis,:,:,:]
         self.offset_raw = None
         gc.collect()
         if self.comm_mode:
-            self.correct_common_mode(data)
+            an.correct_common_mode(data)
         if self.use_fitted_offset:
             #take care here, offset fitted can contain np.nan
             data -= np.nan_to_num(self.offset_fitted[np.newaxis,:,np.newaxis,:])
-        avg_over_nreps = self.get_avg_over_nreps(data)
+        avg_over_nreps = af.get_avg_over_nreps(data)
         np.save(os.path.join(self.step_dir, 'rndr_signals.npy'),
                 avg_over_nreps)
         #calculate event map and save it
-        event_map = self.calc_event_map(avg_over_nreps)
+        event_map = an.calc_event_map(avg_over_nreps, self.noise_fitted, self.thres_event)
         np.save(os.path.join(self.step_dir, 'event_map.npy'),
                 event_map)
         np.save(os.path.join(self.step_dir, 'sum_of_event_signals.npy'),
-                self.get_sum_of_event_signals(event_map))
+                an.get_sum_of_event_signals(event_map, self.row_size, self.column_size))
         np.save(os.path.join(self.step_dir, 'sum_of_event_counts.npy'),
-                self.get_sum_of_event_counts(event_map))
+                an.get_sum_of_event_counts(event_map, self.row_size, self.column_size))
         if self.thres_bad_slopes != 0:
-            bad_slopes_pos, bad_slopes_data, bad_slopes_value = self.get_bad_slopes(data)
+            bad_slopes_pos, bad_slopes_data, bad_slopes_value = an.get_bad_slopes(data, self.thres_bad_slopes, self.step_dir)
             np.save(os.path.join(self.step_dir, 'bad_slopes_pos.npy'), bad_slopes_pos)
             np.save(os.path.join(self.step_dir, 'bad_slopes_data.npy'), bad_slopes_data)
             np.save(os.path.join(self.step_dir, 'bad_slopes_value.npy'), bad_slopes_value)
@@ -233,18 +232,17 @@ class Gain():
 
     def load(self, prm_file, filter_dir):
         self.prm = pm.Params(prm_file)
-        parameters = self.prm.get_dict()
         #common parameters
-        self.results_dir = parameters['common_results_dir']
-        self.column_size = parameters['common_column_size']
-        self.row_size = parameters['common_row_size']
-        self.key_ints = parameters['common_key_ints']
-        self.bad_pixels = parameters['common_bad_pixels']
+        self.results_dir = self.prm['common_results_dir']
+        self.column_size = self.prm['common_column_size']
+        self.row_size = self.prm['common_row_size']
+        self.key_ints = self.prm['common_key_ints']
+        self.bad_pixels = self.prm['common_bad_pixels']
 
         #gain parameters
-        self.nreps = parameters['filter_nreps']
-        self.nframes = parameters['filter_nframes']
-        self.min_signals = parameters['gain_min_signals']
+        self.nreps = self.prm['filter_nreps']
+        self.nframes = self.prm['filter_nframes']
+        self.min_signals = self.prm['gain_min_signals']
 
         self._logger.info(f'Parameters loaded:')
         self.prm.print_contents()
@@ -281,7 +279,7 @@ class Gain():
         # and save the parameter file there
         self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
         
-        fits = self.get_gain_fit(self.event_map)
+        fits = an.get_gain_fit(self.event_map, self.row_size, self.column_size)
         np.save(os.path.join(self.step_dir, 'fit_mean.npy'), fits[0])
         np.save(os.path.join(self.step_dir, 'fit_sigma.npy'), fits[1])
         np.save(os.path.join(self.step_dir, 'fit_mean_error.npy'), fits[2])
