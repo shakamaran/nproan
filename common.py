@@ -6,14 +6,13 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import seaborn as sns
-import multiprocessing as mp
-from numba import prange
 from iminuit import cost, Minuit
 from .logger import Logger
 
 '''
 This is the base class.
 It is a common class that is used by all the other classes in the package.
+DEPRECATED!
 '''
 
 class Common:
@@ -142,6 +141,8 @@ class Common:
             Common._logger.error('Data has wrong dimensions')
             return None
         return np.nanmean(data, axis = (0,2))
+
+#TODO: split to others modules from here:
 
     def exclude_nreps_eval(self, data):
         '''
@@ -326,7 +327,7 @@ class Common:
     
     def get_step_dir(self):
         return self.step_dir
-    
+ 
 def get_unbinned_fit_gauss(data):
     '''
     fits a gaussian to a histogram of data

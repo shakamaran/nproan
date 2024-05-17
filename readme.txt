@@ -1,10 +1,6 @@
 TODO:
 Prio:
-- start analysing some files in notebooks and add functions to common.py
-    check the fitting while youre at it (implement minuit)
 - bad slopes should be ignored in the fitting in the offnoi step
-- create a class, that simply takes a parameter file and calculates everything
-    with a slurm job.
 - add infos to plots
 
 -upload whole package to github
@@ -13,10 +9,32 @@ Prio:
 -exceptions und logging: farben für logging
 -wiki updaten
 
--multiprocessing probieren!
+#TODO: Reorganize modules/inheritance:
 
-keine Prio:
--Zeitschätzung?
+Step module:
+roan_steps.py
+
+Is initialized with the parameter file path.
+Parameters are class variables.
+There should be no methods other than variants of a calculate() method.
+
+The calculate() method performs "standard" data manipulation and stores data 
+in files. all steps in the calculate() method should be possible in the
+jupyter notebook!
+So all methods must be independent from the class!
+roan_steps.py should do everything the three steps do now.
+
+All methods, that manipulate data should be contained in seperate modules:
+-logger.py (as is)
+-params.py (as is)
+-display.py (split common)
+-analysis.py (split common, eg: bad slopes)
+-analysis_funcs.py(split common, functions used in analysis.py eg: np.nanmedian)
+-fitting.py (split common)
+
+Implement logging like here:
+https://stackoverflow.com/questions/15727420/using-logging-in-multiple-modules
+
 
 COL vs ROW Convention:
 
@@ -26,8 +44,6 @@ Size if data is (frames,column_size,nreps, row_size)
 
 
 My current philosophy for doing stuff:
-- np roan should calculate stuff for now, functions for drawing/saving can
-    be put in common.py
 - Parameters from the parameter file are stored in the class variables
 - Parameters can be boolean or int. for thresholds 0 means no calculation is performed.
 - parameter file is in JSON format
@@ -46,14 +62,11 @@ My current philosophy for doing stuff:
 - in the gain step a folder path to the "filter" directory should be
     provided along with the parameters
     consistency of the parameters (from last steps) will be checked
-
 - functions that return values should be named get_something(), its preferred To
     return a value. 
-- data should not be stored in the class
+- provide some functions that do data manipulation inplace
 - data that is loaded from file in the filter or gain step is stored in a class 
-    variable and deleted after use
-- manipulations of the big data array should be done inplace (currently only
-    common mode correction) to save memory
+    variable
 
 
 
