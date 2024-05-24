@@ -4,7 +4,7 @@ from scipy.optimize import curve_fit
 import numpy as np
 from iminuit import cost, Minuit
 
-import logger
+from . import logger
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 

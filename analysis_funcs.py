@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-import logger
+from . import logger
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 

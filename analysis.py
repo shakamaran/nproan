@@ -3,9 +3,9 @@ import gc
 import numpy as np
 from scipy.optimize import curve_fit
 
-import logger
-import fitting
-import display
+from . import logger
+from . import fitting
+from . import display
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 

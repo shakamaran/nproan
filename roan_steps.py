@@ -4,11 +4,11 @@ from datetime import datetime
 
 import numpy as np
 
-import logger
-import analysis_funcs as af
-import analysis as an
-import params as pm
-import fitting as fit
+from . import logger
+from . import analysis_funcs as af
+from . import analysis as an
+from . import params as pm
+from . import fitting as fit
 
 class OffNoi():
     _logger = logger.Logger('nproan-offnoi', 'debug').get_logger()

@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-import logger
-import fitting
+from . import logger
+from . import fitting
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 

@@ -2,7 +2,7 @@ import os
 import fnmatch
 import json
 
-import logger
+from . import logger
 
 class Params:
 

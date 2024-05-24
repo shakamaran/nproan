@@ -1,7 +1,7 @@
 import numpy as np
 import numba as nb
 
-import logger
+from . import logger
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
