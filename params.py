@@ -45,6 +45,7 @@ class Params:
         'gain_min_signals': 5               #int
     }
 
+    #types are checked when they are read
     params_types = {
         'common_results_dir': str,
         'common_column_size': int,
