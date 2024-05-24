@@ -18,23 +18,24 @@ class OffNoi():
         self._logger.info('OffNoi object created')
 
     def load(self, prm_file):
-        self.prm = pm.Params(prm_file)
+        self.params = pm.Params(prm_file)
+        self.params_dict = self.params.get_dict()
         
         #common parameters
-        self.results_dir = self.prm['common_results_dir']
-        self.column_size = self.prm['common_column_size']
-        self.row_size = self.prm['common_row_size']
-        self.key_ints = self.prm['common_key_ints']
-        self.bad_pixels = self.prm['common_bad_pixels']
+        self.results_dir = self.params_dict['common_results_dir']
+        self.column_size = self.params_dict['common_column_size']
+        self.row_size = self.params_dict['common_row_size']
+        self.key_ints = self.params_dict['common_key_ints']
+        self.bad_pixels = self.params_dict['common_bad_pixels']
         #offnoi parameters
-        self.bin_file = self.prm['offnoi_bin_file']
-        self.nreps = self.prm['offnoi_nreps']
-        self.nframes = self.prm['offnoi_nframes']
-        self.nreps_eval = self.prm['offnoi_nreps_eval']
-        self.comm_mode = self.prm['offnoi_comm_mode']
-        self.thres_mips = self.prm['offnoi_thres_mips']
-        self.thres_bad_frames = self.prm['offnoi_thres_bad_frames']
-        self.thres_bad_slopes = self.prm['offnoi_thres_bad_slopes']
+        self.bin_file = self.params_dict['offnoi_bin_file']
+        self.nreps = self.params_dict['offnoi_nreps']
+        self.nframes = self.params_dict['offnoi_nframes']
+        self.nreps_eval = self.params_dict['offnoi_nreps_eval']
+        self.comm_mode = self.params_dict['offnoi_comm_mode']
+        self.thres_mips = self.params_dict['offnoi_thres_mips']
+        self.thres_bad_frames = self.params_dict['offnoi_thres_bad_frames']
+        self.thres_bad_slopes = self.params_dict['offnoi_thres_bad_slopes']
 
         #directories, they will be created in calculate()
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -45,7 +46,7 @@ class OffNoi():
             f'offnoi_{self.nreps}reps_{self.nframes}frames')
 
         self._logger.info(f'Parameters loaded:')
-        self.prm.print_contents()
+        self.params.print_contents()
 
     def calculate(self):   
         #create the directory for the data
@@ -55,7 +56,7 @@ class OffNoi():
         os.makedirs(self.step_dir, exist_ok=True)
         self._logger.info(f'Created working directory for offnoi step: {self.step_dir}')
         # and save the parameter file there
-        self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
+        self.params.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = an.get_data(self.bin_file, self.column_size, self.row_size, self.key_ints, self.nreps, self.nframes)
         gc.collect()
@@ -112,24 +113,25 @@ class Filter():
         self._logger.info('Filter object created')
 
     def load(self, prm_file, offnoi_dir):
-        self.prm = pm.Params(prm_file)
+        self.params = pm.Params(prm_file)
+        self.params_dict = self.params.get_dict()
         #common parameters
-        self.results_dir = self.prm['common_results_dir']
-        self.column_size = self.prm['common_column_size']
-        self.row_size = self.prm['common_row_size']
-        self.key_ints = self.prm['common_key_ints']
-        self.bad_pixels = self.prm['common_bad_pixels']
+        self.results_dir = self.params_dict['common_results_dir']
+        self.column_size = self.params_dict['common_column_size']
+        self.row_size = self.params_dict['common_row_size']
+        self.key_ints = self.params_dict['common_key_ints']
+        self.bad_pixels = self.params_dict['common_bad_pixels']
         #filter parameters
-        self.bin_file = self.prm['filter_bin_file']
-        self.nreps = self.prm['filter_nreps']
-        self.nframes = self.prm['filter_nframes']
-        self.nreps_eval = self.prm['filter_nreps_eval']
-        self.comm_mode = self.prm['filter_comm_mode']
-        self.thres_mips = self.prm['filter_thres_mips']
-        self.thres_event = self.prm['filter_thres_event']
-        self.use_fitted_offset = self.prm['filter_use_fitted_offset']
-        self.thres_bad_frames = self.prm['filter_thres_bad_frames']
-        self.thres_bad_slopes = self.prm['filter_thres_bad_slopes']
+        self.bin_file = self.params_dict['filter_bin_file']
+        self.nreps = self.params_dict['filter_nreps']
+        self.nframes = self.params_dict['filter_nframes']
+        self.nreps_eval = self.params_dict['filter_nreps_eval']
+        self.comm_mode = self.params_dict['filter_comm_mode']
+        self.thres_mips = self.params_dict['filter_thres_mips']
+        self.thres_event = self.params_dict['filter_thres_event']
+        self.use_fitted_offset = self.params_dict['filter_use_fitted_offset']
+        self.thres_bad_frames = self.params_dict['filter_thres_bad_frames']
+        self.thres_bad_slopes = self.params_dict['filter_thres_bad_slopes']
 
         #directories
         #set self.common_dir to the parent directory of offnoi_dir
@@ -137,12 +139,12 @@ class Filter():
         self.step_dir = None
         
         self._logger.info(f'Parameters loaded:')
-        self.prm.print_contents()
+        self.params.print_contents()
         
         self._logger.info('Checking parameters in offnoi directory')
         #look for a json file in the offnoi directory 
-        if (not self.prm.same_common_params(offnoi_dir)) \
-            or (not self.prm.same_offnoi_params(offnoi_dir)):
+        if (not self.params.same_common_params(offnoi_dir)) \
+            or (not self.params.same_offnoi_params(offnoi_dir)):
             self._logger.error('Parameters in offnoi directory do not match')
             return
         try:
@@ -180,7 +182,7 @@ class Filter():
         os.makedirs(self.step_dir, exist_ok=True)
         self._logger.info(f'Created directory for filter step: {self.step_dir}')
         # and save the parameter file there
-        self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
+        self.params.save(os.path.join(self.step_dir, 'parameters.json'))
 
         data = an.get_data(self.bin_file, self.column_size, self.row_size, self.key_ints, self.nreps, self.nframes)
         gc.collect()
@@ -231,27 +233,28 @@ class Gain():
         self._logger.info('Gain object created')
 
     def load(self, prm_file, filter_dir):
-        self.prm = pm.Params(prm_file)
+        self.params = pm.Params(prm_file)
+        self.params_dict = self.params.get_dict()
         #common parameters
-        self.results_dir = self.prm['common_results_dir']
-        self.column_size = self.prm['common_column_size']
-        self.row_size = self.prm['common_row_size']
-        self.key_ints = self.prm['common_key_ints']
-        self.bad_pixels = self.prm['common_bad_pixels']
+        self.results_dir = self.params_dict['common_results_dir']
+        self.column_size = self.params_dict['common_column_size']
+        self.row_size = self.params_dict['common_row_size']
+        self.key_ints = self.params_dict['common_key_ints']
+        self.bad_pixels = self.params_dict['common_bad_pixels']
 
         #gain parameters
-        self.nreps = self.prm['filter_nreps']
-        self.nframes = self.prm['filter_nframes']
-        self.min_signals = self.prm['gain_min_signals']
+        self.nreps = self.params_dict['filter_nreps']
+        self.nframes = self.params_dict['filter_nframes']
+        self.min_signals = self.params_dict['gain_min_signals']
 
         self._logger.info(f'Parameters loaded:')
-        self.prm.print_contents()
+        self.params.print_contents()
         
         self._logger.info('Checking parameters in filter directory')
         #look for a json file in the filter directory
-        if (not self.prm.same_common_params(filter_dir)) \
-            or (not self.prm.same_offnoi_params(filter_dir) \
-            or (not self.prm.same_filter_params(filter_dir))):
+        if (not self.params.same_common_params(filter_dir)) \
+            or (not self.params.same_offnoi_params(filter_dir) \
+            or (not self.params.same_filter_params(filter_dir))):
             self._logger.error('Parameters in filter directory do not match')
             return
         try:
@@ -277,9 +280,9 @@ class Gain():
         os.makedirs(self.step_dir, exist_ok=True)
         self._logger.info(f'Created directory for gain step: {self.step_dir}')
         # and save the parameter file there
-        self.prm.save(os.path.join(self.step_dir, 'parameters.json'))
+        self.params.save(os.path.join(self.step_dir, 'parameters.json'))
         
-        fits = an.get_gain_fit(self.event_map, self.row_size, self.column_size)
+        fits = an.get_gain_fit(self.event_map, self.row_size, self.column_size, self.min_signals)
         np.save(os.path.join(self.step_dir, 'fit_mean.npy'), fits[0])
         np.save(os.path.join(self.step_dir, 'fit_sigma.npy'), fits[1])
         np.save(os.path.join(self.step_dir, 'fit_mean_error.npy'), fits[2])
