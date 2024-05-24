@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 from . import logger
 from . import fitting
 from . import display
+from . import parallel_funcs
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
@@ -272,9 +273,9 @@ def correct_common_mode(data):
     # Iterate over the nframes dimension
     for i in range(data.shape[0]):
         # Calculate the median for one frame
-        median_common = np.nanmedian(data[i], axis=2, keepdims=True)
+        median_common = parallel_funcs.nanmedian_3d_axis2(data[i])
         # Subtract the median from the frame in-place
-        data[i] -= median_common
+        data[i] -= median_common[:,:,np.newaxis]
     _logger.info('Data is corrected for common mode.')
 
 def calc_event_map(avg_over_nreps, noise_fitted, thres_event):
