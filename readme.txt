@@ -13,32 +13,10 @@ Prio:
 -exceptions und logging: farben für logging
 -wiki updaten
 
-#TODO: Reorganize modules/inheritance:
-
-Step module:
-roan_steps.py
-
-Is initialized with the parameter file path.
-Parameters are class variables.
-There should be no methods other than variants of a calculate() method.
-
-The calculate() method performs "standard" data manipulation and stores data 
-in files. all steps in the calculate() method should be possible in the
-jupyter notebook!
-So all methods must be independent from the class!
-roan_steps.py should do everything the three steps do now.
-
-All methods, that manipulate data should be contained in seperate modules:
--logger.py (as is)
--params.py (as is)
--display.py (split common)
--analysis.py (split common, eg: bad slopes)
--analysis_funcs.py(split common, functions used in analysis.py eg: np.nanmedian)
--fitting.py (split common)
-
-Implement logging like here:
-https://stackoverflow.com/questions/15727420/using-logging-in-multiple-modules
-
+-add type hints and write nice documentation:
+ (i started in analysis_funcs, this is an example)
+-replace all np.nanmean and np.nanmedian with its parallel versions.
+-add new parallel functions
 
 COL vs ROW Convention:
 
