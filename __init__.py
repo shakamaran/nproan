@@ -12,7 +12,6 @@ from . import analysis_funcs
 from . import analysis
 from . import display
 from . import fitting
-from . import parallel_funcs
 from . import params
 from . import pyroot_funcs
 from . import roan_steps

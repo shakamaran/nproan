@@ -14,15 +14,13 @@ def get_data(bin_file, column_size, row_size, key_ints, nreps, nframes):
         '''
         Reads the binary file (in chunks) and returns the data as a numpy array 
         in shape (nframes, column_size, nreps, row_size).
-
         Args:
             bin_file: path to the binary file
             column_size: number of columns in the data
             row_size: number of rows in the data
             key_ints: number of key ints in the data
             nreps: number of repetitions in the data
-            nframes: number of frames to read from the data
-        
+            nframes: number of frames to read from the data    
         Returns:
             np.array in shape (nframes, column_size, nreps, row_size)
         '''
@@ -271,11 +269,11 @@ def correct_common_mode(data):
     '''
     _logger.info('Starting common mode correction.')  
     # Iterate over the nframes dimension
-    for i in range(data.shape[0]):
-        # Calculate the median for one frame
-        median_common = parallel_funcs.nanmedian_3d_axis2(data[i])
-        # Subtract the median from the frame in-place
-        data[i] -= median_common[:,:,np.newaxis]
+    # Calculate the median for one frame
+    #median_common = analysis_funcs.parallel_nanmedian_4d_axis3(data)
+    # Subtract the median from the frame in-place
+    median_common = parallel_funcs.nanmedian_parallel(data, axis=3, keepdims=True)
+    data -= median_common
     _logger.info('Data is corrected for common mode.')
 
 def calc_event_map(avg_over_nreps, noise_fitted, thres_event):
