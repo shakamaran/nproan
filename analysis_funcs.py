@@ -3,80 +3,76 @@ import os
 
 import numpy as np
 
+from . import parallel_funcs
 from . import logger
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
-def get_avg_over_frames(data):
+def get_avg_over_frames(data: np.ndarray) -> np.ndarray:
     '''
     Calculates the average over the frames in data.
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array (nframes, column_size, nreps, row_size)
     
     Returns:
-        np.array in shape (column_size, nreps, row_size)
+        np.array (column_size, nreps, row_size)
     '''
     if np.ndim(data) != 4:
-        _logger.error('Data has wrong dimensions')
-        return None
-    return np.nanmean(data, axis = 0)
+        _logger.error('Input data is not a 4D array.')
+        raise ValueError('Input data is not a 4D array.')
+    return parallel_funcs.nanmean(data, axis=0)
 
-def get_avg_over_nreps(data):
-   '''
-   Calculates the average over the nreps in data.
-
-   Args:
-       np.array in shape (nframes, column_size, nreps, row_size)
-
-   Returns:
-       np.array in shape (nframes, column_size, row_size)
-   '''
-   if np.ndim(data) != 4:
-       _logger.error('Data has wrong dimensions')
-       return None
-   return np.nanmean(data, axis = 2)
-
-def get_avg_over_frames_and_nreps(data):
+def get_avg_over_nreps(data: np.ndarray) -> np.ndarray:
     '''
-    Calculates the average over the frames and nreps in data.
+    Calculates the average over the nreps in data.
     Args:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array in shape (nframes, column_size, nreps, row_size)
     Returns:
-        np.array in shape (column_size, row_size)
-    '''
-    if np.ndim(data) != 4:
-        _logger.error('Data has wrong dimensions')
-        return None
-    return np.nanmean(data, axis = (0,2))
-
-def set_pixels_to_nan(data, indices):
-    '''
-    sets all pixels in indices in the data array to nan and returns a copy.
-    
-    Args:
         np.array in shape (nframes, column_size, row_size)
-        list of tuples [(frame, row, column), (frame, row, column), ...]
     '''
-    if np.ndim(data) != 3:
-        _logger.error('Data has wrong dimensions')
-        return None
-    if np.ndim(indices) != 2:
-        _logger.error('Pixel positions have wrong dimensions')
-        return None
-    data_copy = data.copy()
-    #TODO: Vectorize this
-    for entry in indices:
-        data_copy[entry[0], entry[1], entry[2]] = np.nan
-    return data_copy
+    if np.ndim(data) != 4:
+        _logger.error('Input data is not a 4D array.')
+        raise ValueError('Input data is not a 4D array.')
+    return parallel_funcs.nanmean(data, axis=2)
 
-def get_rolling_average(data, window_size):
+def get_avg_over_frames_and_nreps(data : np.ndarray,
+                                  avg_over_frames: np.ndarray = None,
+                                  avg_over_nreps: np.ndarray = None) -> np.ndarray:
+    '''
+    Calculates the average over the frames and nreps in data. If avg_over_frames
+    or avg_over_nreps are already calculated they can be passed as arguments to
+    save computation time.
+    Args:
+        data: np.array (nframes, column_size, nreps, row_size)
+        avg_over_frames: (optional) np.array (column_size, nreps, row_size)
+        avg_over_nreps: (optional) np.array (nframes, column_size, row_size)
+    Returns:
+        np.array (column_size, row_size)
+    '''
+    if np.ndim(data) != 4:
+        _logger.error('Input data is not a 4D array.')
+        raise ValueError('Input data is not a 4D array.')
+    
+    if avg_over_frames is None and avg_over_nreps is None:
+        return parallel_funcs.nanmean(parallel_funcs.nanmean(data, axis=0), axis = 2)
+    
+    if avg_over_nreps is not None:
+        if np.ndim(avg_over_nreps) != 3:
+            _logger.error('Input avg_over_nreps is not a 3D array.')
+            raise ValueError('Input avg_over_nreps is not a 3D array.')
+        return parallel_funcs.nanmean(avg_over_nreps, axis=0)
+    if avg_over_frames is not None:
+        if np.ndim(avg_over_frames) != 3:
+            _logger.error('Input avg_over_frames is not a 3D array.')
+            raise ValueError('Input avg_over_frames is not a 3D array.')
+        return parallel_funcs.nanmean(avg_over_frames, axis=1)
+
+def get_rolling_average(data: np.ndarray, window_size: int) -> np.ndarray:
     '''
     Calculates a rolling average over window_size
-    
     Args:
-        1D np.array
+        data: 1D np.array
         window_size: int
-    
     Returns:
         1D np.array
     '''
@@ -84,14 +80,12 @@ def get_rolling_average(data, window_size):
     # Use 'valid' mode to ensure that output has the same length as input
     return np.convolve(data, weights, mode='valid')
 
-def load_npy_files(folder):
+def load_npy_files(folder: str) -> dict:
     '''
     Looks for .npy arrays in folder and returns them all as a
     dictionary with numpy arrays as values
-
     Args:
         folder: folder path
-
     Returns:
         dictionary of np.arrays
     '''
@@ -109,13 +103,11 @@ def load_npy_files(folder):
         arrays[name] = np.load(os.path.join(folder, file), allow_pickle=True)
     return arrays
 
-def sort_with_indices(arr):
+def sort_with_indices(arr: np.ndarray) -> np.ndarray:
     '''
     Sorts array in descending order and returns the indices.
-
     Args:
-        1D np.array
-
+        arr: 1D np.array
     Returns:
         1D np.array
     '''
@@ -123,5 +115,5 @@ def sort_with_indices(arr):
     sorted_indices = indexed_arr[np.argsort(indexed_arr[:, 1])[::-1]][:, 0]
     return sorted_indices.astype(int)
 
-def get_array_from_file(folder, filename):
+def get_array_from_file(folder: str, filename: str) -> np.ndarray:
     return np.load(os.path.join(folder, filename), allow_pickle=True)

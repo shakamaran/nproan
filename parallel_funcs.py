@@ -13,7 +13,7 @@ Write them only for keepdims=false and use np.newaxis if neccesary.
 move to analysis funcs when they work.
 '''
 
-def nanmedian_parallel(data: np.ndarray, 
+def nanmedian(data: np.ndarray, 
                        axis: int, 
                        keepdims: bool = False) -> np.ndarray:
     '''
@@ -28,57 +28,57 @@ def nanmedian_parallel(data: np.ndarray,
     if data.ndim == 2:
         if axis == 0:
             if keepdims:
-                return nanmedian_2d_axis0(data)[np.newaxis,:]
+                return _nanmedian_2d_axis0(data)[np.newaxis,:]
             else:
-                return nanmedian_2d_axis0(data)
+                return _nanmedian_2d_axis0(data)
         elif axis == 1:
             if keepdims:
-                return nanmedian_2d_axis1(data)[:,np.newaxis]
+                return _nanmedian_2d_axis1(data)[:,np.newaxis]
             else:
-                return nanmedian_2d_axis1(data)
+                return _nanmedian_2d_axis1(data)
     elif data.ndim == 3:
         if axis == 0:
             if keepdims:
-                return nanmedian_3d_axis0(data)[np.newaxis,:,:]
+                return _nanmedian_3d_axis0(data)[np.newaxis,:,:]
             else:
-                return nanmedian_3d_axis0(data)
+                return _nanmedian_3d_axis0(data)
         elif axis == 1:
             if keepdims:
-                return nanmedian_3d_axis1(data)[:,np.newaxis,:]
+                return _nanmedian_3d_axis1(data)[:,np.newaxis,:]
             else:
-                return nanmedian_3d_axis1(data)
+                return _nanmedian_3d_axis1(data)
         elif axis == 2:
             if keepdims:
-                return nanmedian_3d_axis2(data)[:,:,np.newaxis]
+                return _nanmedian_3d_axis2(data)[:,:,np.newaxis]
             else:
-                return nanmedian_3d_axis2(data)
+                return _nanmedian_3d_axis2(data)
     elif data.ndim == 4:
         if axis == 0:
             if keepdims:
-                return parallel_nanmedian_4d_axis0(data)[np.newaxis,:,:,:]
+                return _nanmedian_4d_axis0(data)[np.newaxis,:,:,:]
             else:
-                return parallel_nanmedian_4d_axis0(data)
+                return _nanmedian_4d_axis0(data)
         elif axis == 1:
             if keepdims:
-                return parallel_nanmedian_4d_axis1(data)[:,np.newaxis,:,:]
+                return _nanmedian_4d_axis1(data)[:,np.newaxis,:,:]
             else:
-                return parallel_nanmedian_4d_axis1(data)
+                return _nanmedian_4d_axis1(data)
         elif axis == 2:
             if keepdims:
-                return parallel_nanmedian_4d_axis2(data)[:,:,np.newaxis,:]
+                return _nanmedian_4d_axis2(data)[:,:,np.newaxis,:]
             else:
-                return parallel_nanmedian_4d_axis2(data)
+                return _nanmedian_4d_axis2(data)
         elif axis == 3:
             if keepdims:
-                return parallel_nanmedian_4d_axis3(data)[:,:,:,np.newaxis]
+                return _nanmedian_4d_axis3(data)[:,:,:,np.newaxis]
             else:
-                return parallel_nanmedian_4d_axis3(data)
+                return _nanmedian_4d_axis3(data)
     else:
         _logger.error('Data has wrong dimensions')
         return
 
 @njit(parallel=True)
-def parallel_nanmedian_4d_axis0(data: np.ndarray) -> np.ndarray:
+def _nanmedian_4d_axis0(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=0, keepdims=False).
     Args:
@@ -101,7 +101,7 @@ def parallel_nanmedian_4d_axis0(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def parallel_nanmedian_4d_axis1(data: np.ndarray) -> np.ndarray:
+def _nanmedian_4d_axis1(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=1, keepdims=False).
     Args:
@@ -124,7 +124,7 @@ def parallel_nanmedian_4d_axis1(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def parallel_nanmedian_4d_axis2(data: np.ndarray) -> np.ndarray:
+def _nanmedian_4d_axis2(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=2, keepdims=False).
     Args:
@@ -147,7 +147,7 @@ def parallel_nanmedian_4d_axis2(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def parallel_nanmedian_4d_axis3(data: np.ndarray) -> np.ndarray:
+def _nanmedian_4d_axis3(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=3, keepdims=False).
     Args:
@@ -170,7 +170,7 @@ def parallel_nanmedian_4d_axis3(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmedian_3d_axis0(data: np.ndarray) -> np.ndarray:
+def _nanmedian_3d_axis0(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=0, keepdims=False).
     Args:
@@ -191,7 +191,7 @@ def nanmedian_3d_axis0(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmedian_3d_axis1(data: np.ndarray) -> np.ndarray:
+def _nanmedian_3d_axis1(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=1, keepdims=False).
     Args:
@@ -212,7 +212,7 @@ def nanmedian_3d_axis1(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmedian_3d_axis2(data: np.ndarray) -> np.ndarray:
+def _nanmedian_3d_axis2(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=2, keepdims=False).
     Args:
@@ -233,7 +233,7 @@ def nanmedian_3d_axis2(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmedian_2d_axis0(data: np.ndarray) -> np.ndarray:
+def _nanmedian_2d_axis0(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmedian(data, axis=0, keepdims=False).
     Args:
@@ -252,7 +252,7 @@ def nanmedian_2d_axis0(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmedian_2d_axis1(data: np.ndarray) -> np.ndarray:
+def _nanmedian_2d_axis1(data: np.ndarray) -> np.ndarray:
 
     '''
     The equivalent to np.nanmedian(data, axis=1, keepdims=False).
@@ -271,7 +271,7 @@ def nanmedian_2d_axis1(data: np.ndarray) -> np.ndarray:
         output[i] = median
     return output
 
-def nanmean_parallel(data: np.ndarray, 
+def nanmean(data: np.ndarray, 
                        axis: int, 
                        keepdims: bool = False) -> np.ndarray:
     '''
@@ -286,57 +286,57 @@ def nanmean_parallel(data: np.ndarray,
     if data.ndim == 2:
         if axis == 0:
             if keepdims:
-                return nanmean_2d_axis0(data)[np.newaxis,:]
+                return _nanmean_2d_axis0(data)[np.newaxis,:]
             else:
-                return nanmean_2d_axis0(data)
+                return _nanmean_2d_axis0(data)
         elif axis == 1:
             if keepdims:
-                return nanmean_2d_axis1(data)[:,np.newaxis]
+                return _nanmean_2d_axis1(data)[:,np.newaxis]
             else:
-                return nanmean_2d_axis1(data)
+                return _nanmean_2d_axis1(data)
     elif data.ndim == 3:
         if axis == 0:
             if keepdims:
-                return nanmean_3d_axis0(data)[np.newaxis,:,:]
+                return _nanmean_3d_axis0(data)[np.newaxis,:,:]
             else:
-                return nanmean_3d_axis0(data)
+                return _nanmean_3d_axis0(data)
         elif axis == 1:
             if keepdims:
-                return nanmean_3d_axis1(data)[:,np.newaxis,:]
+                return _nanmean_3d_axis1(data)[:,np.newaxis,:]
             else:
-                return nanmean_3d_axis1(data)
+                return _nanmean_3d_axis1(data)
         elif axis == 2:
             if keepdims:
-                return nanmean_3d_axis2(data)[:,:,np.newaxis]
+                return _nanmean_3d_axis2(data)[:,:,np.newaxis]
             else:
-                return nanmean_3d_axis2(data)
+                return _nanmean_3d_axis2(data)
     elif data.ndim == 4:
         if axis == 0:
             if keepdims:
-                return parallel_nanmean_4d_axis0(data)[np.newaxis,:,:,:]
+                return _nanmean_4d_axis0(data)[np.newaxis,:,:,:]
             else:
-                return parallel_nanmean_4d_axis0(data)
+                return _nanmean_4d_axis0(data)
         elif axis == 1:
             if keepdims:
-                return parallel_nanmean_4d_axis1(data)[:,np.newaxis,:,:]
+                return _nanmean_4d_axis1(data)[:,np.newaxis,:,:]
             else:
-                return parallel_nanmean_4d_axis1(data)
+                return _nanmean_4d_axis1(data)
         elif axis == 2:
             if keepdims:
-                return parallel_nanmean_4d_axis2(data)[:,:,np.newaxis,:]
+                return _nanmean_4d_axis2(data)[:,:,np.newaxis,:]
             else:
-                return parallel_nanmean_4d_axis2(data)
+                return _nanmean_4d_axis2(data)
         elif axis == 3:
             if keepdims:
-                return parallel_nanmean_4d_axis3(data)[:,:,:,np.newaxis]
+                return _nanmean_4d_axis3(data)[:,:,:,np.newaxis]
             else:
-                return parallel_nanmean_4d_axis3(data)
+                return _nanmean_4d_axis3(data)
     else:
         _logger.error('Data has wrong dimensions')
         return
 
 @njit(parallel=True)
-def parallel_nanmean_4d_axis0(data: np.ndarray) -> np.ndarray:
+def _nanmean_4d_axis0(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=0, keepdims=False).
     Args:
@@ -359,7 +359,7 @@ def parallel_nanmean_4d_axis0(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def parallel_nanmean_4d_axis1(data: np.ndarray) -> np.ndarray:
+def _nanmean_4d_axis1(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=1, keepdims=False).
     Args:
@@ -382,7 +382,7 @@ def parallel_nanmean_4d_axis1(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def parallel_nanmean_4d_axis2(data: np.ndarray) -> np.ndarray:
+def _nanmean_4d_axis2(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=2, keepdims=False).
     Args:
@@ -405,7 +405,7 @@ def parallel_nanmean_4d_axis2(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def parallel_nanmean_4d_axis3(data: np.ndarray) -> np.ndarray:
+def _nanmean_4d_axis3(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=3, keepdims=False).
     Args:
@@ -428,7 +428,7 @@ def parallel_nanmean_4d_axis3(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmean_3d_axis0(data: np.ndarray) -> np.ndarray:
+def _nanmean_3d_axis0(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=0, keepdims=False).
     Args:
@@ -449,7 +449,7 @@ def nanmean_3d_axis0(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmean_3d_axis1(data: np.ndarray) -> np.ndarray:
+def _nanmean_3d_axis1(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=1, keepdims=False).
     Args:
@@ -470,7 +470,7 @@ def nanmean_3d_axis1(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmean_3d_axis2(data: np.ndarray) -> np.ndarray:
+def _nanmean_3d_axis2(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=2, keepdims=False).
     Args:
@@ -491,7 +491,7 @@ def nanmean_3d_axis2(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmean_2d_axis0(data: np.ndarray) -> np.ndarray:
+def _nanmean_2d_axis0(data: np.ndarray) -> np.ndarray:
     '''
     The equivalent to np.nanmean(data, axis=0, keepdims=False).
     Args:
@@ -510,7 +510,7 @@ def nanmean_2d_axis0(data: np.ndarray) -> np.ndarray:
     return output
 
 @njit(parallel=True)
-def nanmean_2d_axis1(data: np.ndarray) -> np.ndarray:
+def _nanmean_2d_axis1(data: np.ndarray) -> np.ndarray:
     
     '''
     The equivalent to np.nanmean(data, axis=1, keepdims=False).
