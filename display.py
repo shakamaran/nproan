@@ -7,12 +7,12 @@ from . import fitting
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
-def draw_hist(data, file_name="histogram", save_to=None, **kwargs):
+def draw_hist(data: np.ndarray, file_name: str = "histogram", 
+              save_to: str = None, **kwargs) -> None:
     '''
-    Draw a histogram of the data
-    
+    Draw a histogram of the data.
     Args:
-        np.array
+        np.array in any shape
         file_name: str
         save_to: str
         **kwargs: passed to plt.hist
@@ -25,10 +25,10 @@ def draw_hist(data, file_name="histogram", save_to=None, **kwargs):
     else:
         plt.show()
 
-def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
+def draw_heatmap(data: np.ndarray, file_name: str = "heatmap", 
+                 save_to: str = None, **kwargs) -> None:
     '''
     Draw a heatmap of the data
-    
     Args:
         np.array
         file_name: str
@@ -36,10 +36,9 @@ def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
         **kwargs: passed to sns.heatmap
     '''
     if data.ndim !=2:
-        _logger.error('Data is not 2D')
-        return
+        _logger.error('Input data is not a 2D array.')
+        raise ValueError('Input data is not a 2D array.')
     plt.clf()
-    # Define default values
     cmap = kwargs.get('cmap', 'coolwarm')
     sns.heatmap(data, cmap=cmap, **kwargs)
     if save_to is not None:
@@ -48,12 +47,12 @@ def draw_heatmap(data, file_name="heatmap", save_to=None, **kwargs):
     else:
         plt.show()
 
-def draw_graph(data, file_name="graph", save_to=None, **kwargs):
+def draw_graph(data: np.ndarray, file_name: str = "graph", 
+               save_to: str = None, **kwargs) -> None:
     '''
     Draw a graph of the data
-    
     Args:
-        np.array
+        np.array in any shape
         file_name: str
         save_to: str (optional)
         **kwargs: passed to plt.plot
@@ -66,10 +65,12 @@ def draw_graph(data, file_name="graph", save_to=None, **kwargs):
     else:
         plt.show()
 
-def draw_hist_and_gauss_fit(data, bins, amplitude, mean, sigma, file_name=None, save_to=None):
+def draw_hist_and_gauss_fit(data: np.ndarray, bins: str, 
+                            amplitude: float, mean: float, sigma: float, 
+                            file_name: str = None, 
+                            save_to: str = None) -> None:
     '''
     Draw a histogram of the data and a gaussian fit
-
     Args:
         np.array
         bins: int

@@ -56,16 +56,25 @@ def get_avg_over_frames_and_nreps(data : np.ndarray,
     if avg_over_frames is None and avg_over_nreps is None:
         return parallel_funcs.nanmean(parallel_funcs.nanmean(data, axis=0), axis = 2)
     
-    if avg_over_nreps is not None:
-        if np.ndim(avg_over_nreps) != 3:
-            _logger.error('Input avg_over_nreps is not a 3D array.')
-            raise ValueError('Input avg_over_nreps is not a 3D array.')
-        return parallel_funcs.nanmean(avg_over_nreps, axis=0)
-    if avg_over_frames is not None:
-        if np.ndim(avg_over_frames) != 3:
-            _logger.error('Input avg_over_frames is not a 3D array.')
-            raise ValueError('Input avg_over_frames is not a 3D array.')
-        return parallel_funcs.nanmean(avg_over_frames, axis=1)
+    if avg_over_frames is not None and avg_over_nreps is not None:
+        if np.ndim(avg_over_frames) != 3 or np.ndim(avg_over_nreps) != 3:
+            _logger.error('Input avg_over_frames or avg_over_nreps is not a 3D array.')
+            raise ValueError('Input avg_over_frames or avg_over_nreps is not a 3D array.')
+        if avg_over_frames.shape[1] < avg_over_nreps.shape[0]:
+            return parallel_funcs.nanmean(avg_over_frames, axis=1)
+        else:
+            return parallel_funcs.nanmean(avg_over_nreps, axis=0)
+    else: 
+        if avg_over_nreps is not None:
+            if np.ndim(avg_over_nreps) != 3:
+                _logger.error('Input avg_over_nreps is not a 3D array.')
+                raise ValueError('Input avg_over_nreps is not a 3D array.')
+            return parallel_funcs.nanmean(avg_over_nreps, axis=0)
+        else:
+            if np.ndim(avg_over_frames) != 3:
+                _logger.error('Input avg_over_frames is not a 3D array.')
+                raise ValueError('Input avg_over_frames is not a 3D array.')
+            return parallel_funcs.nanmean(avg_over_frames, axis=1)
 
 def get_rolling_average(data: np.ndarray, window_size: int) -> np.ndarray:
     '''
@@ -111,6 +120,9 @@ def sort_with_indices(arr: np.ndarray) -> np.ndarray:
     Returns:
         1D np.array
     '''
+    if np.ndim(arr) != 1:
+        _logger.error('Input data is not a 1D array.')
+        raise ValueError('Input data is not a 1D array.')
     indexed_arr = np.column_stack((np.arange(len(arr)), arr))
     sorted_indices = indexed_arr[np.argsort(indexed_arr[:, 1])[::-1]][:, 0]
     return sorted_indices.astype(int)

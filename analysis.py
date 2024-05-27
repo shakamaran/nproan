@@ -10,7 +10,8 @@ from . import parallel_funcs
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
-def get_data(bin_file, column_size, row_size, key_ints, nreps, nframes):
+def get_data(bin_file : str, column_size: int, row_size: int, key_ints: int,
+             nreps: int, nframes: int) -> np.ndarray:
         '''
         Reads the binary file (in chunks) and returns the data as a numpy array 
         in shape (nframes, column_size, nreps, row_size).
@@ -42,8 +43,7 @@ def get_data(bin_file, column_size, row_size, key_ints, nreps, nframes):
             if inp_data.size == 0:
                 _logger.warning(f'Loaded {frames_here} of {nframes} requested frames, end of file reached.')
                 return polarity*output[:frames_here].copy()
-            _logger.info(f'Reading chunk {count+1} from bin file, \
-                  {frames_here} frames loaded')
+            _logger.info(f'Reading chunk {count+1} from bin file, {frames_here} frames loaded')
             #reshape the array into rows -> (#ofRows,67)
             inp_data = inp_data.reshape(-1, raw_row_size)
             #find all the framekeys
@@ -87,7 +87,8 @@ def get_data(bin_file, column_size, row_size, key_ints, nreps, nframes):
             frames_here += frames_inc
             gc.collect()
 
-def get_dummy_data(column_size, row_size, nreps, nframes):
+def get_dummy_data(column_size: int, row_size: int, nreps: int, 
+                   nframes: int) -> np.ndarray:
     '''
     Returns random values for tests.
     Args:
@@ -102,15 +103,15 @@ def get_dummy_data(column_size, row_size, nreps, nframes):
     '''
     return np.random.rand(nframes, row_size, nreps, column_size)
 
-def exclude_nreps_eval(data, nreps_eval):
+def exclude_nreps_eval(data: np.ndarray, nreps_eval: list) -> np.ndarray:
     '''
     Deletes nreps from data that are not in the list nreps_eval.
     nreps_eval is a list of 3 integers: [lower, upper, step]
     Args:
-        data: np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array (nframes, column_size, nreps, row_size)
         nreps_eval: list of 3 ints
     Returns:
-        np.array in shape (nframes, column_size, nreps-X, row_size)
+        np.array View(!) (nframes, column_size, nreps-X, row_size)
     '''
     #TODO: optimize this
     if np.ndim(data) != 4:
@@ -137,7 +138,7 @@ def exclude_nreps_eval(data, nreps_eval):
     _logger.info(f'Excluded {np.sum(~mask)} nreps')
     return data[:,:,mask,:]
 
-def exclude_mips_frames(data, thres_mips):
+def exclude_mips_frames(data: np.ndarray, thres_mips: int) -> np.ndarray:
     '''
     Calculates the median of each frame and deletes frames that are
     above or below the median by a certain threshold.
@@ -147,10 +148,11 @@ def exclude_mips_frames(data, thres_mips):
     Returns:
         np.array in shape (nframes-X, column_size, nreps, row_size)
     '''
-    #TODO: optimize this
+    #TODO add optional inputs and use parallel stuff for median
+    #TODO: combine with exclude_bad_frames to save computation of median
     if np.ndim(data) != 4:
-        _logger.error('Data has wrong dimensions')
-        return None
+        _logger.error('Input data is not a 4D array.')
+        raise ValueError('Input data is not a 4D array.')
     _logger.info(f'Excluding bad frames due to MIPS, threshold: {thres_mips}')
     median = np.nanmedian(data, 
                           axis = (1,2,3))[:,np.newaxis,np.newaxis,np.newaxis]
@@ -161,7 +163,8 @@ def exclude_mips_frames(data, thres_mips):
     _logger.info(f'Excluded {np.sum(mask)} frames')
     return data[~mask]
 
-def exclude_bad_frames(data, thres_bad_frames, step_dir=None):
+def exclude_bad_frames(data: np.ndarray, thres_bad_frames: int, 
+                       step_dir: str = None):
     '''
     Calculates the average of each frame and excludes frames that are
     above or below the fitted mean by a certain threshold.
@@ -193,14 +196,15 @@ def exclude_bad_frames(data, thres_bad_frames, step_dir=None):
                             save_to = step_dir)
     return data[~bad_pixel_mask]
 
-def get_bad_slopes(data, thres_bad_slopes, step_dir=None):
+def get_bad_slopes(data: np.ndarray, thres_bad_slopes: int, 
+                   step_dir: str = None)-> tuple[np.ndarray, np.ndarray, np.ndarray]:
     '''
     Calculates the slope over nreps for every pixel and frame.
     It then fits a gaussian to the histogram of the slopes, and determines
     the bad slopes by a threshold.
     
     Args:
-        data: np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array (nframes, column_size, nreps, row_size)
         thres_bad_slopes: used with the fitted sigma to determine bad slopes
         step_dir (optional): directory in which plot is saved
         
@@ -208,10 +212,10 @@ def get_bad_slopes(data, thres_bad_slopes, step_dir=None):
         np.array in shape (n, 3) with the position [frame, row, column]
         np.array in shape (n, nreps) with the data of the bad slopes
     '''
-    #TODO: optimize this
+    #TODO: optimize this by doing the linear fit in parallel
     if np.ndim(data) != 4:
-        _logger.error('Data has wrong dimensions')
-        return None
+        _logger.error('Input data is not a 4D array.')
+        raise ValueError('Input data is not a 4D array.')
     _logger.info('Calculating bad slopes')
     slopes = np.apply_along_axis(fitting.linear_fit, axis = 2, arr = data)[:, :, 0, :]
     _logger.debug(f'Shape of slopes: {slopes.shape}')
@@ -235,20 +239,21 @@ def get_bad_slopes(data, thres_bad_slopes, step_dir=None):
                             save_to = step_dir)
     return bad_slopes_pos, bad_slopes_data, bad_slopes_value
 
-def set_bad_pixellist_to_nan(data, bad_pixels):
+def set_bad_pixellist_to_nan(data: np.ndarray, 
+                             bad_pixels: list[tuple[int, int]]) -> None:
     '''
     Sets all ignored Pixels in data to NaN. List of pixels is from the
     parameter file. [(row,col), (row,col), ...]
     Args:
-        data: np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array (nframes, column_size, nreps, row_size)
         bad_pixels: list of tuples (row,col)
     
     Returns:
-        np.array in shape (nframes, column_size, nreps, row_size)
+        np.array (nframes, column_size, nreps, row_size)
     '''
     if np.ndim(data) != 4:
-        _logger.error('Data has wrong dimensions')
-        return None
+        _logger.error('Data is not a 4D array')
+        raise ValueError('Data is not a 4D array')
     _logger.info('Excluding bad pixels')
     bad_pixel_mask = np.zeros(data.shape, dtype=bool)
     for index in bad_pixels:
@@ -257,9 +262,8 @@ def set_bad_pixellist_to_nan(data, bad_pixels):
         bad_pixel_mask[:,row,:,col] = True
     data[bad_pixel_mask] = np.nan
     _logger.info(f'Excluded {len(bad_pixels)} pixels')
-    return data
 
-def correct_common_mode(data):
+def correct_common_mode(data: np.ndarray) -> None:
     '''
     Calculates the median of euch row in data, and substracts it from 
     the row.
@@ -267,6 +271,9 @@ def correct_common_mode(data):
     Args:
         np.array in shape (nframes, column_size, nreps, row_size)
     '''
+    if data.ndim != 4:
+        _logger.error('Data is not a 4D array')
+        raise ValueError('Data is not a 4D array')
     _logger.info('Starting common mode correction.')  
     # Iterate over the nframes dimension
     # Calculate the median for one frame
@@ -276,7 +283,24 @@ def correct_common_mode(data):
     data -= median_common
     _logger.info('Data is corrected for common mode.')
 
-def calc_event_map(avg_over_nreps, noise_fitted, thres_event):
+def calc_event_map(avg_over_nreps: np.ndarray, noise_fitted: np.ndarray, 
+                   thres_event: int) -> np.ndarray:
+    '''
+    Finds events in the data by comparing the average over nreps with the
+    noise fitted map.
+    Args:
+        avg_over_nreps: np.array (nframes, column_size, row_size)
+        noise_fitted: np.array (column_size, row_size)
+        thres_event: threshold for the events
+    Returns:
+        np.array (column_size, row_size) with lists of signals
+    '''
+    if avg_over_nreps.ndim != 3:
+        _logger.error('avg_over_nreps is not a 3D array')
+        raise ValueError('avg_over_nreps is not a 3D array')
+    if noise_fitted.ndim != 2:
+        _logger.error('noise_fitted is not a 2D array')
+        raise ValueError('noise_fitted is not a 2D array')
     _logger.info('Finding events')
     threshold_map = noise_fitted * thres_event
     events = avg_over_nreps > threshold_map[np.newaxis,:,:]
@@ -298,21 +322,59 @@ def calc_event_map(avg_over_nreps, noise_fitted, thres_event):
             )
     return event_map
 
-def get_sum_of_event_signals(event_map, row_size, column_size):
+def get_sum_of_event_signals(event_map: np.ndarray, 
+                             row_size: int, 
+                             column_size: int) -> np.ndarray:
+    '''
+    Adds the signal values of the events in the event_map
+    Args:
+        event_map: np.array (column_size, row_size) 
+        row_size: number of rows in the data
+        column_size: number of columns in the data
+    Returns:
+        np.array (column_size, row_size) with the sum of the signals
+    '''
     sum_of_events = np.zeros((row_size,column_size))
     for row in range(row_size):
         for column in range(column_size):
             sum_of_events[row][column] = sum(event_map[row][column])
     return sum_of_events
 
-def get_sum_of_event_counts(event_map, row_size, column_size):
+def get_sum_of_event_counts(event_map: np.ndarray, 
+                            row_size: int, column_size: int) -> np.ndarray:
+    '''
+    Sums up the number of events in the event_map
+    Args:
+        event_map: np.array (column_size, row_size) 
+        row_size: number of rows in the data
+        column_size: number of columns in the data
+    Returns:
+        np.array (column_size, row_size) with the count of the events
+    '''
     sum_of_events = np.zeros((row_size,column_size))
     for row in range(row_size):
         for column in range(column_size):
             sum_of_events[row][column] = len(event_map[row][column])
     return sum_of_events
 
-def get_gain_fit(event_map, row_size, column_size, min_signals):
+def get_gain_fit(event_map: np.ndarray, row_size: int, column_size: int, 
+                 min_signals: int) -> tuple[np.ndarray, np.ndarray,np.ndarray,np.ndarray]:
+    '''
+    Fits a gaussian to the histogram of the signals in the event_map. When
+    there are fewer signals than min_signals, or the fit is not
+    successfull, the values are set to np.nan.
+    Args:
+        event_map: np.array (column_size, row_size) with lists of signals
+        row_size: number of rows in the data
+        column_size: number of columns in the data
+        min_signals: minimum number of signals for a fit
+    Returns:
+        np.array (column_size, row_size) with the mean of the gaussian
+        np.array (column_size, row_size) with the sigma of the gaussian
+        np.array (column_size, row_size) with the error of the mean
+        np.array (column_size, row_size) with the error of the sigma
+        '''
+    #TODO: optimize this
     mean = np.full((row_size, column_size), np.nan)
     sigma = np.full((row_size, column_size), np.nan)
     mean_error = np.full((row_size, column_size), np.nan)
@@ -323,7 +385,9 @@ def get_gain_fit(event_map, row_size, column_size, min_signals):
         def gaussian(x, a1, mu1, sigma1):
             return a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2))
         try:
-            hist, bins = np.histogram(data, bins=10, range=(np.nanmin(data), np.nanmax(data)), density=True)
+            hist, bins = np.histogram(data, bins=10, 
+                                      range=(np.nanmin(data), np.nanmax(data)), 
+                                      density=True)
             bin_centers = (bins[:-1] + bins[1:]) / 2
             params, covar = curve_fit(gaussian, 
                                       bin_centers, 

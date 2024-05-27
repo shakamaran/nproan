@@ -14,7 +14,7 @@ Prio:
 -wiki updaten
 
 -add type hints and write nice documentation:
- (i started in analysis_funcs, this is an example)
+ analysis, analysis_funcs and display modules are done
 -replace all np.nanmean and np.nanmedian with its parallel versions.
 -add new parallel functions
 
