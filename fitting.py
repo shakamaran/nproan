@@ -8,13 +8,11 @@ from . import logger
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
-def fit_gauss_to_hist(data_to_fit):
+def fit_gauss_to_hist(data_to_fit: np.ndarray) -> np.ndarray:
     ''' 
     fits a gaussian to a histogram of data_to_fit
-
     Args:
         1D np.array
-    
     Returns:
         np.array[amplitude, mean, sigma, error_amplitude, error_mean, error_sigma]
     '''
@@ -30,15 +28,14 @@ def fit_gauss_to_hist(data_to_fit):
                          np.sqrt(np.diag(covar))[1], 
                          np.sqrt(np.diag(covar))[2]])
     except:
+        _logger.debug('Fitting for this histogram failed. Returning NaNs.')
         return np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
     
-def unbinned_fit_gauss_to_hist(data_to_fit):
+def unbinned_fit_gauss_to_hist(data_to_fit: np.ndarray) -> np.ndarray:
     '''
     fits a gaussian to a histogram of data_to_fit
-
     Args:
         1D np.array
-
     Returns:
         np.array[amplitude, mean, sigma, error_mean, error_sigma]
     '''
@@ -61,14 +58,12 @@ def unbinned_fit_gauss_to_hist(data_to_fit):
                      m.errors['mu1'],
                      m.errors['sigma1']])
 
-def get_fit_gauss(data):
+def get_fit_gauss(data: np.ndarray) -> np.ndarray:
     ''' 
     fits a gaussian to a histogram of data_to_fit
     using the scipy curve_fit method
-
     Args:
         np.array in shape (nframes, column_size, row_size)
-
     Returns:
         np.array in shape (6, rows, columns)
         index 0: amplitude
@@ -79,21 +74,19 @@ def get_fit_gauss(data):
         index 5: error_sigma
     '''
     if data.ndim != 3:
-        _logger.error('Data has wrong dimensions')
-        return
+        _logger.error('Data is not a 3D array')
+        raise ValueError('Data is not a 3D array')
     #apply the function to every frame
     output = np.apply_along_axis(fit_gauss_to_hist, axis = 0, arr = data)
     return output
 
-def get_unbinned_fit_gauss(data):
+def get_unbinned_fit_gauss(data: np.ndarray) -> np.ndarray:
     '''
     fits a gaussian to a histogram of data
     using the unbinned method in minuit
     returns a np.array in shape (6, rows, columns)
-
     Args:
         np.array in shape (nframes, column_size, row_size)
-
     Returns:
         np.array in shape (6, rows, columns)
         index 0: amplitude
@@ -104,20 +97,21 @@ def get_unbinned_fit_gauss(data):
         index 5: error_sigma
     '''
     if data.ndim != 3:
-        _logger.error('Data has wrong dimensions')
-        return
+        _logger.error('Data is not a 3D array')
+        raise ValueError('Data is not a 3D array')
     #apply the function to every frame
     output = np.apply_along_axis(unbinned_fit_gauss_to_hist, axis = 0, arr = data)
     return output
 
-def gaussian(x, a1, mu1, sigma1):
+def gaussian(x: float, a1: float, mu1: float, sigma1: float) -> float:
     return (a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2)))
 
-def two_gaussians(x, a1, mu1, sigma1, a2, mu2, sigma2):
+def two_gaussians(x: float, a1: float, mu1: float, sigma1: float, 
+                  a2: float, mu2: float, sigma2: float) -> float:
     return (a1 * np.exp(-(x - mu1)**2 / (2 * sigma1**2) +
             a2 * np.exp(-(x - mu2)**2 / (2 * sigma2**2))))
 
-def linear_fit(data):
+def linear_fit(data: np.ndarray) -> np.ndarray:
     x = np.arange(data.size)
     k, d = np.polyfit(x, data, 1)
     return np.array([k, d])

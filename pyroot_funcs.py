@@ -5,7 +5,10 @@ from . import logger
 
 _logger = logger.Logger(__name__, 'info').get_logger()
 
-def get_tree_branch_as_np(tree_name, root_file, branch_names, filter_string=None):
+def get_tree_branch_as_np(tree_name: str, 
+                          root_file: str, 
+                          branch_names:str, 
+                          filter_string: str = None) -> dict[str, np.ndarray]:
     '''
     Loads a TTree from a .root File, applies a filter and returns defined 
     branches (columns) as a dictionary.
@@ -19,16 +22,15 @@ def get_tree_branch_as_np(tree_name, root_file, branch_names, filter_string=None
     be provided. The content must be C++ code. The name of the variables must 
     be the name of the branches.
     eg: filter_string = 'NSignals >= 2 && FrameIndex == 8'
-    
     Args:
         tree_name: name of a TTree
         root_file: path of the .root file
         branch_names: list of strings containing names of branches to load
-        filter_string: string for a filter
-        
+        filter_string: string for a filter 
     Returns:
         Dictionary of numpy arrays
     '''
+    #TODO: add better exception handling
     try:
         df = RDataFrame(tree_name,root_file)
         print(f'Tree loaded succesfully: \n {df.Describe()}')
@@ -58,17 +60,17 @@ def get_tree_branch_as_np(tree_name, root_file, branch_names, filter_string=None
                 output[key][index] = content
     return output
 
-def get_count_map_from_pixel_index(inp_dict):
+def get_count_map_from_pixel_index(inp_dict: 
+                                   dict[str, np.ndarray]) -> np.ndarray:
     '''
     Takes a dictionary (the output of get_tree_branch_as_np()) with 'Column' 
     and 'Row' keys and returns a 64 by 64 map with the counts.
-    
     Args:
-        inp_dict: dictionary with a list of lists
-    
+        inp_dict: dictionary with a list of lists for 'Column' and 'Row'
     Returns:
         64 by 64 numpy array
     '''
+    #TODO: add better exception handling
     if type(inp_dict) != dict:
         print('Not a dictionary!')
         return

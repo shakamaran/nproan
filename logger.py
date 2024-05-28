@@ -33,10 +33,10 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 class Logger:
-    def __init__(self, logger_name, level='info', file_name=None):
+    def __init__(self, logger_name: str, 
+                 level: str = 'info', file_name: str = None):
         # Create a logger
         self.logger = logging.getLogger(logger_name)
-
         levels = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
         if level not in ['debug', 'info', 'warning', 'error', 'critical']:
             raise ValueError('Invalid level')
@@ -63,5 +63,5 @@ class Logger:
         # Add the handler to the logger
         self.logger.addHandler(ch)
 
-    def get_logger(self):
+    def get_logger(self) -> logging.Logger:
         return self.logger

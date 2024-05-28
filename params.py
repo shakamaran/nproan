@@ -85,7 +85,7 @@ class Params:
         'filter_nreps'
     ]
 
-    def __init__(self, json_path=None):
+    def __init__(self, json_path: str = None):
         self.default_dict = {**self.common_params,
                              **self.offnoi_params,
                              **self.filter_params,
@@ -100,7 +100,7 @@ class Params:
             self._logger.error('Run save_default_file() to save a default parameter file.')
             self._logger.error('Add all required parameters to default and start new.')
 
-    def update(self, json_path):
+    def update(self, json_path: str) -> None:
         try:
             with open(json_path) as f:
                 self.inp_dict = json.load(f)
@@ -130,7 +130,7 @@ class Params:
                 else:
                     self._logger.error(f"{key} is missing. Using default: {self.default_dict[key]}")
 
-    def check_types(self):
+    def check_types(self) -> None:
         for key,value in self.param_dict.items():
             if key not in self.params_types:
                 raise TypeError(f"There is no type defined for {key}.")
@@ -139,14 +139,14 @@ class Params:
                 if not isinstance(value, expected_type):
                     raise TypeError(f"Expected {key} to be of type {expected_type}.")
                 
-    def get_dict(self):
+    def get_dict(self) -> dict:
         return self.param_dict
 
-    def print_contents(self):
+    def print_contents(self) -> None:
         for key, value in self.param_dict.items():
             self._logger.info(f"{key}: {value}")
 
-    def info(self):
+    def info(self) -> None:
         self._logger.info('The following parameters must be provided:')
         self._logger.info('--common parameters:')
         for key in self.common_params.keys():
@@ -164,7 +164,7 @@ class Params:
         for key in self.required_params:
             self._logger.info(key)
 
-    def save_default_file(self, path=None):
+    def save_default_file(self, path: str = None) -> None:
         #if no path is provided, save to the current directory
         self._logger.info(f'path: {path}')
         if path is None:
@@ -174,11 +174,11 @@ class Params:
         with open(path, 'w') as f:
             json.dump(self.default_dict, f, indent=4)
     
-    def save(self, path):
+    def save(self, path: str) -> None:
         with open(path, 'w') as f:
             json.dump(self.param_dict, f, indent=4)
 
-    def get_json_file_name_in_folder(self, folder_path):
+    def get_json_file_name_in_folder(self, folder_path: str) -> str:
         count = 0
         json_file =''
         for file in os.listdir(folder_path):
@@ -188,9 +188,9 @@ class Params:
         if count == 1:
             return json_file
         else:
-            return False
+            return None
             
-    def same_common_params(self, folder_path):
+    def same_common_params(self, folder_path: str) -> bool:
         json_file = self.get_json_file_name_in_folder(folder_path)
         self._logger.info(f'json_file: {json_file}')
         if json_file:
@@ -204,7 +204,7 @@ class Params:
             self._logger.error('No json file found in the folder')
             return False
         
-    def same_offnoi_params(self, folder_path):
+    def same_offnoi_params(self, folder_path:str) -> bool:
         json_file = self.get_json_file_name_in_folder(folder_path)
         if json_file:
             with open(json_file) as f:
@@ -217,7 +217,7 @@ class Params:
             self._logger.error('No json file found in the folder')
             return False
     
-    def same_filter_params(self, folder_path):
+    def same_filter_params(self, folder_path:str) -> bool:
         json_file = self.get_json_file_name_in_folder(folder_path)
         if json_file:
             with open(json_file) as f:
@@ -230,7 +230,7 @@ class Params:
             self._logger.error('No json file found in the folder')
             return False
         
-    def same_gain_params(self, folder_path):
+    def same_gain_params(self, folder_path: str) -> bool:
         json_file = self.get_json_file_name_in_folder(folder_path)
         if json_file:
             with open(json_file) as f:
@@ -243,7 +243,7 @@ class Params:
             self._logger.error('No json file found in the folder')
             return False
         
-    def estimate_ram_usage(self):
+    def estimate_ram_usage(self) -> None:
         pixel_per_frame = self.param_dict['common_column_size'] * self.param_dict['common_row_size']
         frames_offnoi = self.param_dict['offnoi_nframes']
         frames_filter = self.param_dict['filter_nframes']

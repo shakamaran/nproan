@@ -143,10 +143,10 @@ def exclude_mips_frames(data: np.ndarray, thres_mips: int) -> np.ndarray:
     Calculates the median of each frame and deletes frames that are
     above or below the median by a certain threshold.
     Args:
-        data: np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array (nframes, column_size, nreps, row_size)
         thres_mips: absolute threshold in adu
     Returns:
-        np.array in shape (nframes-X, column_size, nreps, row_size)
+        np.array (nframes-X, column_size, nreps, row_size)
     '''
     #TODO add optional inputs and use parallel stuff for median
     #TODO: combine with exclude_bad_frames to save computation of median
@@ -169,12 +169,10 @@ def exclude_bad_frames(data: np.ndarray, thres_bad_frames: int,
     Calculates the average of each frame and excludes frames that are
     above or below the fitted mean by a certain threshold.
     It saves a .png file in the step directory.
-
     Args:
-        data: np.array in shape (nframes, column_size, nreps, row_size)
+        data: np.array (nframes, column_size, nreps, row_size)
         thres_bad_frames: used with the fitted sigma do exclude frames
         step_dir (optional): directory in which plot is saved
-
     Returns:
         np.array in shape (nframes-X, column_size, nreps, row_size)
     '''
@@ -202,12 +200,10 @@ def get_bad_slopes(data: np.ndarray, thres_bad_slopes: int,
     Calculates the slope over nreps for every pixel and frame.
     It then fits a gaussian to the histogram of the slopes, and determines
     the bad slopes by a threshold.
-    
     Args:
         data: np.array (nframes, column_size, nreps, row_size)
         thres_bad_slopes: used with the fitted sigma to determine bad slopes
         step_dir (optional): directory in which plot is saved
-        
     Returns:
         np.array in shape (n, 3) with the position [frame, row, column]
         np.array in shape (n, nreps) with the data of the bad slopes
@@ -247,7 +243,6 @@ def set_bad_pixellist_to_nan(data: np.ndarray,
     Args:
         data: np.array (nframes, column_size, nreps, row_size)
         bad_pixels: list of tuples (row,col)
-    
     Returns:
         np.array (nframes, column_size, nreps, row_size)
     '''
