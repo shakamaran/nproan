@@ -279,7 +279,7 @@ def correct_common_mode(data: np.ndarray) -> None:
     # Calculate the median for one frame
     #median_common = analysis_funcs.parallel_nanmedian_4d_axis3(data)
     # Subtract the median from the frame in-place
-    median_common = parallel_funcs.nanmedian_parallel(data, axis=3, keepdims=True)
+    median_common = parallel_funcs.nanmedian(data, axis=3, keepdims=True)
     data -= median_common
     _logger.info('Data is corrected for common mode.')
 
