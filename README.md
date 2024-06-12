@@ -1,3 +1,9 @@
+I tried to upload to pypi test following this instructions:
+https://packaging.python.org/en/latest/tutorials/packaging-projects/
+
+If it works add this to the "real" pypi!
+
+
 TODO:
 Prio:
 - make roan_steps work; thre step classes should work. and write one function
