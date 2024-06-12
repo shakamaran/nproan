@@ -1,28 +1,73 @@
-I tried to upload to pypi test following this instructions:
-https://packaging.python.org/en/latest/tutorials/packaging-projects/
+import nproan.analysis
+import nproan.analysis_funcs
+import nproan.display
+import nproan.fitting
+import nproan.pyroot_funcs
+import nproan.roan_steps
 
-If it works add this to the "real" pypi!
+...these are imported when loading the package.
 
+Modules:
+
+roan_steps:
+Contains classes for OffNoi, Filter and Gain step. Each class is initialized
+with a path to a parameter file in .json format.
+The .calculate() method performs all the computations in the step. It also
+handles saving of files (paths are defined in the parameter file)
+This is exposed to the user when importing nproan.
+
+analysis:
+Contains functions used for analysing/manipulating data. More complex
+functions are in here (eg more complex than np.nanmean)
+This is exposed to the user when importing nproan.
+
+display:
+Contains functions used for displaying data.
+This is exposed to the user when importing nproan.
+
+analysis_funcs:
+Contains functions used for analysing/manipulating data. They
+are also used in the analysis module.
+This is exposed to the user when importing nproan.
+
+fitting:
+Contains functions for fitting to data. They are used in the analysis
+step.
+This is NOT exposed to the user when importing nproan. It can be imported
+however (from nproan import fitting)
+
+logger:
+Class that provides logging capabilities.
+This is NOT exposed to the user when importing nproan. It can be imported
+however (from nproan import logger). But it would make no sense.
+
+parallel_funcs:
+Contains parallelized versions of simple numpy functions. The are used in
+analysis/analysis_funcs
+
+params:
+Contains functions for handling parameter .json files.
+step.
+This is NOT exposed to the user when importing nproan. It can be imported
+however (from nproan import params) It would make no sense, since its only
+used by roan_steps.
+
+pyroot_funcs:
+Contains functions to interface with ROOT using the pyroot package.
+This is NOT exposed to the user when importing nproan. It takes a long time to
+load and should be only loaded when neccesary.
 
 TODO:
 Prio:
-- make roan_steps work; thre step classes should work. and write one function
-    that just calculates all
 - bad slopes should be ignored in the fitting in the offnoi step
 - add infos to plots
-- documentation of functions
-- just load the prm dictionary in the roan_steps classes, dont define all those class variables.
+- check documentation of functions
+- make fitting better: implement a second fitting algorithm and add an option for it
+- wiki schreiben
+- dinge parallelisieren
+- add type hints and write nice documentation (almost done)
+- consider combining analysis and analysis_funcs
 
--upload whole package to github
--check if nproanPackage needs to be uploaded
--test it with collagues
--exceptions und logging: farben für logging
--wiki updaten
-
--add type hints and write nice documentation:
- analysis, analysis_funcs and display modules are done
--replace all np.nanmean and np.nanmedian with its parallel versions.
--add new parallel functions
 
 COL vs ROW Convention:
 
