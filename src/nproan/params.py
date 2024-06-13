@@ -97,8 +97,11 @@ class Params:
             self.check_types()
         else:
             self._logger.error('No parameter file provided.')
-            self._logger.error('Run save_default_file() to save a default parameter file.')
-            self._logger.error('Add all required parameters to default and start new.')
+            self._logger.error('Created default parameter file.')
+            self.save_default_file()
+            self._logger.error('Add all required parameters to default.')
+            self._logger.error('Add the path to the parameter file as an argument.')
+            raise ValueError('No parameter file provided.')
 
     def update(self, json_path: str) -> None:
         try:

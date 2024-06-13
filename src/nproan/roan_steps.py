@@ -13,11 +13,11 @@ from . import fitting as fit
 class OffNoi():
     _logger = logger.Logger('nproan-offnoi', 'debug').get_logger()
 
-    def __init__(self, prm_file):
+    def __init__(self, prm_file: str = None) -> None:
         self.load(prm_file)
         self._logger.info('OffNoi object created')
 
-    def load(self, prm_file):
+    def load(self, prm_file: str) -> None:
         self.params = pm.Params(prm_file)
         self.params_dict = self.params.get_dict()
         
@@ -48,7 +48,7 @@ class OffNoi():
         self._logger.info(f'Parameters loaded:')
         self.params.print_contents()
 
-    def calculate(self):   
+    def calculate(self) -> None:   
         #create the directory for the data
         os.makedirs(self.common_dir, exist_ok=True)
         self._logger.info(f'Created common directory for data: {self.common_dir}')
@@ -108,11 +108,13 @@ class Filter():
 
     _logger = logger.Logger('nproan-filter', 'debug').get_logger()
 
-    def __init__(self, prm_file, offnoi_dir):
+    def __init__(self, prm_file: str = None, offnoi_dir: str = None) -> None:
+        if prm_file is None or offnoi_dir is None:
+            raise ValueError('No parameter file or offnoi_directory given.')
         self.load(prm_file, offnoi_dir)
         self._logger.info('Filter object created')
 
-    def load(self, prm_file, offnoi_dir):
+    def load(self, prm_file:str, offnoi_dir:str) -> None:
         self.params = pm.Params(prm_file)
         self.params_dict = self.params.get_dict()
         #common parameters
@@ -177,7 +179,7 @@ class Filter():
         except:
             raise ValueError('Error loading offnoi data\n')
 
-    def calculate(self):
+    def calculate(self) -> None:
         #create the working directory for the filter step
         os.makedirs(self.step_dir, exist_ok=True)
         self._logger.info(f'Created directory for filter step: {self.step_dir}')
@@ -228,11 +230,13 @@ class Gain():
 
     _logger = logger.Logger('nproan-gain', 'debug').get_logger()
 
-    def __init__(self, prm_file, filter_dir):
+    def __init__(self, prm_file: str = None, filter_dir: str = None) -> None:
+        if prm_file is None or filter_dir is None:
+            raise ValueError('No parameter file or filter directory given.')
         self.load(prm_file, filter_dir)
         self._logger.info('Gain object created')
 
-    def load(self, prm_file, filter_dir):
+    def load(self, prm_file: str, filter_dir: str) -> None:
         self.params = pm.Params(prm_file)
         self.params_dict = self.params.get_dict()
         #common parameters
@@ -273,7 +277,7 @@ class Gain():
             return
         self._logger.info('Filter data loaded\n')
 
-    def calculate(self):
+    def calculate(self) -> None:
         #create the working directory for the gain step
         self.step_dir = os.path.join(self.common_dir, 
                                      f'gain_{self.min_signals}_min_signals')
