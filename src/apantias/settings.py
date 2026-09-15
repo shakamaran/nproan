@@ -14,11 +14,15 @@ Settings should be grouped in a structured way:
     - runtime
     - frame
 
-When adding new settings to an existing class, always add with a default and a description
-When adding a new class, dont forget to add it to the AppSettings class and the
-_validate_complete and load_config functions.
+How to add new settings class:
+    - Define the class (eg. LoggingSettings)
+    - Add it to the AppSettings class
 
-Add validation here later, so only sensible settings will be loaded before a run.
+How to add new parameter to existing class:
+    - just add it to the class
+    - dont forget a default and description
+
+Add validation here later, so only sensible settings will be loaded before a run. (for example RAM/Core ratio)
 """
 
 from pathlib import Path
@@ -75,17 +79,51 @@ def _get_field_descriptions(model: type[BaseModel]) -> dict[str, str]:
     return descriptions
 
 
+def _dump_config(cfg: AppSettings, path: Path) -> None:
+    """Write default config to YAML with comments from field descriptions.
+
+    Dynamic: iterates AppSettings.model_fields, so adding a new section
+    to AppSettings is automatically picked up.
+    """
+    lines: list[str] = []
+
+    for section_name, section_data in cfg.model_dump().items():
+        # section_data is a dict here; get the actual model for descriptions
+        model = type(getattr(cfg, section_name))
+        descriptions = _get_field_descriptions(model)
+
+        lines.append(f"{section_name}:")
+        for key, value in section_data.items():
+            if key in descriptions:
+                lines.append(f"  # {descriptions[key]}")
+            lines.append(f"  {key}: {value}")
+
+    path.write_text("\n".join(lines))
+
+
 def _validate_complete(data: dict[str, Any], path: Path) -> None:
-    """Raise if the loaded config is missing any required section or field."""
+    """Raise if the loaded config is missing any required section or field.
 
-    def check(section_data: dict[str, Any], model: type[BaseModel], section: str) -> None:
-        missing = [name for name in model.model_fields if name not in section_data]
-        if missing:
-            raise ValueError(f"{path}: missing required {section} field(s): {', '.join(missing)}")
+    Dynamic: iterates AppSettings.model_fields, so adding a new section
+    to AppSettings is automatically picked up.
+    """
+    missing: list[str] = []
 
-    check(data, AppSettings, "top-level")
-    check(data.get("runtime", {}), RuntimeSettings, "runtime")
-    check(data.get("frame", {}), FrameSettings, "frame")
+    for field_name, field_info in AppSettings.model_fields.items():
+        if field_name not in data:
+            # A top-level section key is entirely missing
+            missing.append(field_name)
+            continue
+        section_data = data[field_name]
+        # If the field's type is a BaseModel subclass, validate its fields too
+        origin = field_info.annotation
+        if origin is not None and issubclass(origin, BaseModel):
+            for sub_name in origin.model_fields:
+                if sub_name not in section_data:
+                    missing.append(f"{field_name}.{sub_name}")
+
+    if missing:
+        raise ValueError(f"{path}: missing required field(s): {', '.join(missing)}")
 
 
 def _resolve_auto(config: AppSettings) -> AppSettings:
@@ -104,35 +142,22 @@ def _resolve_auto(config: AppSettings) -> AppSettings:
     return config.model_copy(update={"runtime": runtime.model_copy(update=updates)})
 
 
-def load_config(path: Path | None = None) -> AppSettings:
+def load_config(path: Path | None = None, *, quiet: bool = False) -> AppSettings:
     """
-    - If path is None: return defaults.
-    - If path doesn't exist: write defaults to that path and return them.
-    - If path exists: read & validate.
-    Will throw an error if the provided yaml file is not complete.
+    - If path is None or file missing: write defaults to default.yaml
+      at the given path (or working directory) and return them.
+    - If path exists: read and validate it.
+    Will raise if the loaded config is missing any required section or field.
     """
     path = Path(path) if path else DEFAULT_CONFIG_FILE
     if not path.exists():
         print(f"No file {path} found.\nA file with defaults will be created at that location.")
         path.parent.mkdir(parents=True, exist_ok=True)
         cfg = AppSettings()
-        data = cfg.model_dump()
-
-        lines: list[str] = []
-
-        def dump_section(name: str, model: type[BaseModel]) -> None:
-            lines.append(f"{name}:")
-            descriptions = _get_field_descriptions(model)
-            for key, value in data[name].items():
-                if key in descriptions:
-                    lines.append(f"  # {descriptions[key]}")
-                lines.append(f"  {key}: {value}")
-
-        dump_section("runtime", RuntimeSettings)
-        dump_section("frame", FrameSettings)
-        path.write_text("\n".join(lines))
+        _dump_config(cfg, path)
         cfg = _resolve_auto(cfg)
-        print_config(cfg)
+        if not quiet:
+            print_config(cfg)
         return cfg
 
     data = yaml.safe_load(path.read_text())
@@ -140,7 +165,8 @@ def load_config(path: Path | None = None) -> AppSettings:
         raise ValueError(f"Config file {path} is empty or not a mapping")
     _validate_complete(data, path)
     cfg = _resolve_auto(AppSettings.model_validate(data))
-    print_config(cfg)
+    if not quiet:
+        print_config(cfg)
     return cfg
 
 
@@ -161,7 +187,7 @@ def print_config(config: AppSettings) -> None:
     print("\n" + "=" * 50 + "\n")
 
 
-def set_config(path: Path | str | None = None, *, overwrite: bool = False) -> AppSettings:
+def set_config(path: Path | str | None = None, *, overwrite: bool = False, quiet: bool = False) -> AppSettings:
     """Load the yaml config ONCE and register it as the process-wide shared instance.
 
     Args:
@@ -179,15 +205,15 @@ def set_config(path: Path | str | None = None, *, overwrite: bool = False) -> Ap
         raise RuntimeError("config already set; pass overwrite=True to replace it")
     if isinstance(path, str):
         path = Path(path)
-    _config = load_config(path)
+    _config = load_config(path, quiet=quiet)
     return _config
 
 
 def get_config() -> AppSettings:
     """Return the shared frozen AppSettings instance.
 
-    If set_config() was called first, this returns that exact instance. As a
-    convenience it lazily loads defaults if set_config() was never called.
+    If set_config() was called first, this returns that exact instance.
+    Throws a RuntimeError if config wasnt set
     """
     global _config
     if _config is None:
