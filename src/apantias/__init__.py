@@ -1,7 +1,3 @@
-"""Init:
-Defines what modules are exposed to the user.
-"""
-
 import importlib.metadata
 import logging
 import multiprocessing
@@ -30,4 +26,4 @@ __all__ = ["core", "settings", "standard"]
 # Dask's LocalCluster spawns workers via multiprocessing, where the name becomes
 # something like 'ForkProcess-1', 'SpawnPoolWorker-2', etc.
 if multiprocessing.current_process().name == "MainProcess":
-    print(f"APANTIAS version {__version__} loaded.")
+    print(f"123APANTIAS version {__version__} loaded.")

@@ -39,6 +39,9 @@ format.preview = true
 extend-select = ["E", "W", "I", "B", "UP"]
 ignore = ["F821"]
 
+[tool.ruff.lint.extend-per-file-ignores]
+"**/__init__.py" = ["EXE002"]
+
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
